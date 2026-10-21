@@ -1,0 +1,159 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.lineage.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/lineage/v1;defectlineagev1";
+
+import "google/protobuf/timestamp.proto";
+
+// The defect-lineage work list: the host claims bug-fix pull requests whose
+// removed lines need a blame walk, a VCS connector walks each fix against its
+// provider, and submits the culprit commits back. The SDK's BlameSink
+// interface takes and returns these messages; the blame walk and the
+// structural scorer are host capabilities (LineageWalker, DefectScorer).
+
+// DefectLineageEvidenceType is how the walk reaches a culprit commit; the host's walker fills it.
+enum DefectLineageEvidenceType {
+  // The evidence type is not set.
+  DEFECT_LINEAGE_EVIDENCE_TYPE_UNSPECIFIED = 0;
+  // The removed line blames straight to this commit at the anchor revision.
+  DEFECT_LINEAGE_EVIDENCE_TYPE_BLAME_DIRECT = 1;
+  // The walk reaches this commit past commits that do not materially change the line.
+  DEFECT_LINEAGE_EVIDENCE_TYPE_BLAME_AFTER_HOPS = 2;
+  // The provider has no blame, so the file's history and each commit's diff find the commit.
+  DEFECT_LINEAGE_EVIDENCE_TYPE_PATH_RECONSTRUCTION = 3;
+  // The fix removes no line, so the enclosing region infers the commit: the weakest evidence.
+  DEFECT_LINEAGE_EVIDENCE_TYPE_GUARD_PROXIMITY = 4;
+}
+
+// DefectLineageState is the status a walk reports for one fix; the host's walker fills it.
+enum DefectLineageState {
+  // The state is not set.
+  DEFECT_LINEAGE_STATE_UNSPECIFIED = 0;
+  // The fix is queued for tracing, and no provider call has run for it yet.
+  DEFECT_LINEAGE_STATE_PENDING = 1;
+  // A drain has claimed the fix; the claim lapses when its lease expires.
+  DEFECT_LINEAGE_STATE_IN_PROGRESS = 2;
+  // The walk finds at least one culprit candidate for the fix.
+  DEFECT_LINEAGE_STATE_RESOLVED = 3;
+  // The walk blames the fix and no candidate survives: an answer, not a failure.
+  DEFECT_LINEAGE_STATE_UNATTRIBUTED = 4;
+  // No blameable hunk: the fix only adds guards or configuration, or its diff does not render.
+  DEFECT_LINEAGE_STATE_ANCHORS_EMPTY = 5;
+  // The fix changes more files than the ceiling, so tracing skips it before any provider call.
+  DEFECT_LINEAGE_STATE_SKIPPED_OVERSIZED = 6;
+  // History is rewritten and the anchor revision no longer exists, so a retry cannot recover it.
+  DEFECT_LINEAGE_STATE_ANCHOR_UNREACHABLE = 7;
+  // The provider's blame path fails terminally for this fix.
+  DEFECT_LINEAGE_STATE_BLAME_UNAVAILABLE = 8;
+}
+
+// LineageBlameAnchor is one range a fix removed or replaced, addressed at the
+// old path and old line numbers.
+message LineageBlameAnchor {
+  string path = 1;
+  // start_line and end_line are 1-based and inclusive, old-file numbering.
+  int32 start_line = 2;
+  int32 end_line = 3;
+  // removed_text is the removed lines verbatim, whitespace preserved.
+  repeated string removed_text = 4;
+}
+
+// PendingLineageBlame is one claimed fix with everything its walk needs.
+message PendingLineageBlame {
+  string bug_fix_pr_id = 1;
+  string platform_repo_id = 2;
+  string repo_full_name = 3;
+  // fix_commit_sha is the commit that landed the fix; the walk resolves its
+  // first parent and blames that revision.
+  string fix_commit_sha = 4;
+  repeated LineageBlameAnchor location_anchors = 5;
+}
+
+message ListPendingLineageBlameRequest {
+  string organization_id = 1;
+  string connector_id = 2;
+  int32 limit = 3;
+}
+
+message ListPendingLineageBlameResponse {
+  repeated PendingLineageBlame pending = 1;
+}
+
+// LineageBlameAuthor is the culprit commit's author (not its committer).
+message LineageBlameAuthor {
+  string name = 1;
+  string email = 2;
+  // login is kept for wire compatibility and is not read.
+  string login = 3 [deprecated = true];
+}
+
+// LineageBlameResult is one culprit commit reached for one anchor.
+message LineageBlameResult {
+  string path = 1;
+  int32 start_line = 2;
+  string culprit_sha = 3;
+  google.protobuf.Timestamp committed_at = 4;
+  // hops_walked is how many non-material commits the walk passed.
+  int32 hops_walked = 5;
+  DefectLineageEvidenceType evidence_type = 6;
+  LineageBlameAuthor author = 7;
+  // culprit_path is the file path in the culprit's own revision, when known.
+  string culprit_path = 8;
+  // culprit_line is the 1-based line in the culprit's revision, or 0.
+  int32 culprit_line = 9;
+  // candidate_pr_number is the pull request that introduced the culprit, or 0.
+  int32 candidate_pr_number = 10;
+}
+
+message SubmitLineageBlameRequest {
+  string organization_id = 1;
+  string bug_fix_pr_id = 2;
+  DefectLineageState status = 3;
+  repeated LineageBlameResult results = 4;
+}
+
+message SubmitLineageBlameResponse {}
+
+message ListPendingStructuralScoringRequest {
+  string organization_id = 1;
+  string connector_id = 2;
+  int32 limit = 3;
+}
+
+// PendingStructuralCandidate is one unscored culprit candidate.
+message PendingStructuralCandidate {
+  string candidate_lineage_id = 1;
+  string candidate_commit_sha = 2;
+  string candidate_path = 3;
+  int32 candidate_line = 4;
+}
+
+// PendingStructuralScoring groups one fix's unscored candidates with its
+// anchors.
+message PendingStructuralScoring {
+  string platform_repo_id = 1;
+  string repo_full_name = 2;
+  string fix_commit_sha = 3;
+  repeated LineageBlameAnchor fix_anchors = 4;
+  repeated PendingStructuralCandidate candidates = 5;
+}
+
+message ListPendingStructuralScoringResponse {
+  repeated PendingStructuralScoring pending = 1;
+}
+
+message SubmitStructuralVerdictRequest {
+  string organization_id = 1;
+  string candidate_lineage_id = 2;
+  string match_level = 3;
+  string node_type = 4;
+  string enclosing_type = 5;
+  bool degraded = 6;
+  int32 candidate_line = 7;
+}
+
+message SubmitStructuralVerdictResponse {}

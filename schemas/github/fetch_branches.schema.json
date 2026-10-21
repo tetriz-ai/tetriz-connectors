@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_branches.schema.json",
+  "title": "github fetch_branches",
+  "description": "One branch: an element of the GitHub REST GET /repos/{owner}/{repo}/branches body, passed through unchanged. snake_case keys. GitHub can add keys.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "commit", "protected"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1},
+    "commit": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["sha"],
+      "properties": {
+        "sha": {"type": "string"},
+        "url": {"type": "string"}
+      }
+    },
+    "protected": {"type": "boolean"},
+    "protection": {"type": "object"},
+    "protection_url": {"type": "string"}
+  }
+}

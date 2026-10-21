@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/common/repository_record.json",
+  "title": "RepositoryRecord (protojson)",
+  "description": "tetriz.connectors.connector.v1.RepositoryRecord encoded with protojson.Marshal: lowerCamelCase keys, zero values omitted, int64 as a decimal string, Timestamp as RFC 3339, bytes as base64.",
+  "type": "object",
+  "required": ["platformRepoId"],
+  "additionalProperties": false,
+  "properties": {
+    "platformRepoId": {"type": "string", "minLength": 1, "description": "Stable vendor repository id. Also the record ExternalID."},
+    "name": {"type": "string"},
+    "fullName": {"type": "string"},
+    "ownerLogin": {"type": "string"},
+    "description": {"type": "string"},
+    "defaultBranch": {"type": "string"},
+    "visibility": {"enum": ["REPOSITORY_VISIBILITY_UNSPECIFIED", "REPOSITORY_VISIBILITY_PUBLIC", "REPOSITORY_VISIBILITY_PRIVATE", "REPOSITORY_VISIBILITY_INTERNAL"]},
+    "archived": {"type": "boolean"},
+    "disabled": {"type": "boolean"},
+    "isFork": {"type": "boolean"},
+    "parentPlatformRepoId": {"type": "string"},
+    "isTemplate": {"type": "boolean"},
+    "primaryLanguage": {"type": "string"},
+    "sizeKb": {"type": "string", "pattern": "^-?[0-9]+$", "description": "int64, so protojson writes it as a string."},
+    "topics": {"type": "array", "items": {"type": "string"}},
+    "licenseKey": {"type": "string"},
+    "hasIssues": {"type": "boolean"},
+    "hasWiki": {"type": "boolean"},
+    "hasPages": {"type": "boolean"},
+    "hasProjects": {"type": "boolean"},
+    "webUrl": {"type": "string"},
+    "sshUrl": {"type": "string"},
+    "httpCloneUrl": {"type": "string"},
+    "vendorCreatedAt": {"type": "string", "format": "date-time"},
+    "vendorUpdatedAt": {"type": "string", "format": "date-time"},
+    "vendorPushedAt": {"type": "string", "format": "date-time"},
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stars": {"type": "integer"},
+        "forks": {"type": "integer"},
+        "watchers": {"type": "integer"},
+        "subscribers": {"type": "integer"},
+        "openIssues": {"type": "integer"},
+        "networkCount": {"type": "integer"}
+      }
+    },
+    "vendorBlobJson": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "contentMediaType": "application/json",
+      "description": "Base64 of a JSON object whose only key is the vendor id. The connector schema gives its contentSchema."
+    },
+    "trackedBranch": {"type": "string"}
+  }
+}

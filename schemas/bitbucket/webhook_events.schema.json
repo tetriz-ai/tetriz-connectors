@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/webhook_events.schema.json",
+  "title": "bitbucket webhook_events",
+  "description": "The webhook request body exactly as Bitbucket sent it, after its HMAC signature was verified. The shape depends on metadata event_type (the X-Event-Key header); see Bitbucket's event payload reference. The connector checks only that it is a JSON object; a body that is not is rejected and never emitted.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "actor": {"type": ["object", "null"]},
+    "repository": {"type": ["object", "null"]},
+    "pullrequest": {"type": ["object", "null"]},
+    "push": {"type": ["object", "null"]},
+    "approval": {"type": ["object", "null"]},
+    "comment": {"type": ["object", "null"]},
+    "issue": {"type": ["object", "null"]}
+  }
+}

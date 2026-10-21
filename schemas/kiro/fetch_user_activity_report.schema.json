@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/kiro/fetch_user_activity_report.schema.json",
+  "title": "kiro fetch_user_activity_report",
+  "description": "A pointer to one day's Kiro user-activity CSV report for one client type, copied into the runner's blob store. The payload never carries the CSV bytes.",
+  "type": "object",
+  "required": ["s3_key", "source_bucket", "source_key", "content_sha256", "source_last_modified"],
+  "properties": {
+    "s3_bucket": {
+      "description": "The blob store bucket holding the copy. Absent when the store cannot name itself, such as a memory or directory store; s3_key then locates the copy in the runner's configured store.",
+      "type": "string",
+      "minLength": 1
+    },
+    "s3_key": {
+      "description": "The copy's key: kiro/<organization>/<yyyy>/<mm>/<dd>/<client type>_user_report.csv. A re-fetch overwrites the same key.",
+      "type": "string",
+      "pattern": "^kiro/[^/]+/[0-9]{4}/[0-9]{2}/[0-9]{2}/[A-Za-z][A-Za-z0-9_]*_user_report\\.csv$"
+    },
+    "source_bucket": {
+      "description": "The customer's bucket the vendor wrote the report into.",
+      "type": "string",
+      "minLength": 1
+    },
+    "source_key": {
+      "description": "The report's key in the customer's bucket, ending <client type>_<account>_user_report_<timestamp>.csv.",
+      "type": "string",
+      "minLength": 1
+    },
+    "content_sha256": {
+      "description": "Lowercase hex SHA-256 of the stored bytes.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_last_modified": {
+      "description": "The source object's LastModified in UTC, RFC 3339, to the second.",
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

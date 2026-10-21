@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_repos.schema.json",
+  "title": "bitbucket fetch_repos",
+  "description": "One repository as a RepositoryRecord in protojson. platformRepoId is the Bitbucket repository UUID with its braces. name is the repository slug. visibility is only PUBLIC or PRIVATE. stats is always an empty object. vendorBlobJson is base64 of a flat JSON object of Bitbucket-only fields, not wrapped in a \"bitbucket\" key.",
+  "allOf": [{"$ref": "../common/repository_record.json"}],
+  "required": ["platformRepoId", "name", "fullName", "visibility", "stats", "vendorBlobJson"],
+  "properties": {
+    "platformRepoId": {"pattern": "^\\{[^{}]+\\}$"},
+    "visibility": {"enum": ["REPOSITORY_VISIBILITY_PUBLIC", "REPOSITORY_VISIBILITY_PRIVATE"]},
+    "stats": {"maxProperties": 0},
+    "vendorBlobJson": {
+      "contentEncoding": "base64",
+      "contentMediaType": "application/json",
+      "contentSchema": {
+        "type": "object",
+        "required": ["workspace_uuid", "mainbranch", "project_key", "project_uuid", "scm"],
+        "additionalProperties": false,
+        "properties": {
+          "workspace_uuid": {"type": "string", "description": "Workspace UUID with braces; empty when the listing has no workspace."},
+          "mainbranch": {
+            "type": "object",
+            "description": "Main branch name and type; an empty object when the repository has none.",
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string"},
+              "type": {"type": "string"}
+            }
+          },
+          "project_key": {"type": "string"},
+          "project_uuid": {"type": "string"},
+          "scm": {"type": "string", "description": "Always \"git\" on Bitbucket Cloud today."}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,353 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// --- List Workspace Repositories (REST) ---
+
+message BitbucketListReposRequest {
+  string workspace = 1;
+  int32 page = 2;
+  int32 pagelen = 3;
+}
+
+message BitbucketListReposResponse {
+  // Raw JSON of each repository object from the Bitbucket API.
+  repeated bytes repos = 1;
+  // URL to the next page of results, empty if no more pages.
+  string next_page_url = 2;
+}
+
+// --- Get Single Repository (REST) ---
+
+// BitbucketGetRepo fetches one repository so the connector can learn its real
+// default branch (mainbranch.name) and UUID without paging the whole workspace
+// listing. The workspace listing populates these for auto-discovered repos; this
+// per-repo call is the only source for an explicit settings.Repositories entry,
+// where commits/tree would otherwise have to guess the default branch.
+message BitbucketGetRepoRequest {
+  // workspace is the Bitbucket workspace slug owning the repo.
+  string workspace = 1;
+  // repo_slug is the URL-safe repository slug under the workspace.
+  string repo_slug = 2;
+}
+
+// BitbucketGetRepoResponse carries the fetched repository object.
+message BitbucketGetRepoResponse {
+  // Raw JSON of the repository object (same shape as one element of
+  // BitbucketListReposResponse.repos); carries mainbranch.name and uuid.
+  bytes repo = 1;
+}
+
+// --- List Pull Requests (REST) ---
+
+// Pull request state filter for the Bitbucket API.
+enum BitbucketPullRequestState {
+  BITBUCKET_PULL_REQUEST_STATE_UNSPECIFIED = 0;
+  BITBUCKET_PULL_REQUEST_STATE_OPEN = 1;
+  BITBUCKET_PULL_REQUEST_STATE_MERGED = 2;
+  BITBUCKET_PULL_REQUEST_STATE_DECLINED = 3;
+  BITBUCKET_PULL_REQUEST_STATE_SUPERSEDED = 4;
+}
+
+message BitbucketListPullRequestsRequest {
+  string workspace = 1;
+  string repo_slug = 2;
+  // PR state filter. UNSPECIFIED means no filter (returns all states).
+  BitbucketPullRequestState state = 3;
+  int32 page = 4;
+  int32 pagelen = 5;
+}
+
+message BitbucketListPullRequestsResponse {
+  // Raw JSON of each pull request object.
+  repeated bytes pull_requests = 1;
+  string next_page_url = 2;
+}
+
+// --- List Commits (REST) ---
+
+message BitbucketListCommitsRequest {
+  string workspace = 1;
+  string repo_slug = 2;
+  int32 page = 3;
+  int32 pagelen = 4;
+  // When set, fetches commits reachable from this branch (Bitbucket ?include= param).
+  // When empty, the API defaults to the repository's main branch.
+  string include = 5;
+}
+
+message BitbucketListCommitsResponse {
+  // Raw JSON of each commit object.
+  repeated bytes commits = 1;
+  string next_page_url = 2;
+}
+
+// --- Get Current User (REST) ---
+
+message BitbucketGetUserRequest {}
+
+message BitbucketGetUserResponse {
+  // Raw JSON of the user object.
+  bytes user = 1;
+}
+
+// --- Get PR Diffstat (REST) ---
+
+// PR diffstat for line counts.
+message BitbucketGetPRDiffstatRequest {
+  string workspace = 1;
+  string repo_slug = 2;
+  int64 pr_id = 3;
+  // page is the 1-indexed Bitbucket page number; zero defaults to 1 in the URL builder.
+  int32 page = 4;
+  // pagelen is the per-page diffstat entry cap; zero defaults to `diffstatPagelen` in the connector.
+  int32 pagelen = 5;
+}
+
+message BitbucketGetPRDiffstatResponse {
+  // Raw JSON of each diffstat entry object.
+  repeated bytes diffstat_entries = 1;
+  // URL of the next page of results, empty when no further pages exist.
+  // Required so large PRs (more than `pagelen` changed files) can be walked
+  // end-to-end — older shape silently truncated at the first page.
+  string next_page_url = 2;
+}
+
+// --- Get Commit Diffstat (REST) ---
+
+// Commit diffstat — diff of a single commit against its parent.
+// Endpoint: GET /repositories/{workspace}/{repo_slug}/diffstat/{commit_sha}
+message BitbucketGetCommitDiffstatRequest {
+  // workspace is the Bitbucket workspace slug owning the commit.
+  string workspace = 1;
+  // repo_slug is the URL-safe repository slug under the workspace.
+  string repo_slug = 2;
+  // Full commit SHA. Bitbucket also accepts short shas but we always pass the
+  // full hash from `bbCommit.Hash`.
+  string commit_sha = 3;
+  // page is the 1-indexed Bitbucket page number; zero defaults to 1 in the URL builder.
+  int32 page = 4;
+  // pagelen is the per-page diffstat entry cap; zero defaults to `diffstatPagelen` in the connector.
+  int32 pagelen = 5;
+}
+
+// BitbucketGetCommitDiffstatResponse carries the paginated diffstat entries
+// for a single commit. Shape mirrors `BitbucketGetPRDiffstatResponse` so the
+// same `bbDiffstatEntry` Go type unmarshals both.
+message BitbucketGetCommitDiffstatResponse {
+  // Raw JSON of each diffstat entry object — shape mirrors the PR diffstat
+  // response so the same `bbDiffstatEntry` Go type unmarshals both.
+  repeated bytes diffstat_entries = 1;
+  // next_page_url is the URL of the next page of results, empty when no further pages exist.
+  string next_page_url = 2;
+}
+
+// --- List PR Comments (REST) ---
+
+// PR comments for comment count.
+message BitbucketListPRCommentsRequest {
+  string workspace = 1;
+  string repo_slug = 2;
+  int64 pr_id = 3;
+  int32 page = 4;
+  int32 pagelen = 5;
+}
+
+message BitbucketListPRCommentsResponse {
+  // Raw JSON of each comment object.
+  repeated bytes comments = 1;
+  string next_page_url = 2;
+}
+
+// --- List PR Activity (REST) ---
+
+// PR activity for approvals/reviews.
+message BitbucketListPRActivityRequest {
+  string workspace = 1;
+  string repo_slug = 2;
+  int64 pr_id = 3;
+  int32 page = 4;
+  int32 pagelen = 5;
+}
+
+message BitbucketListPRActivityResponse {
+  // Raw JSON of each activity object.
+  repeated bytes activities = 1;
+  string next_page_url = 2;
+}
+
+// --- List Issues (REST) ---
+
+// Issue listing per repo.
+message BitbucketListIssuesRequest {
+  string workspace = 1;
+  string repo_slug = 2;
+  int32 page = 3;
+  int32 pagelen = 4;
+}
+
+message BitbucketListIssuesResponse {
+  // Raw JSON of each issue object.
+  repeated bytes issues = 1;
+  string next_page_url = 2;
+}
+
+// --- List Workspace Members (REST) ---
+
+// Workspace members for identity enrichment.
+message BitbucketListWorkspaceMembersRequest {
+  string workspace = 1;
+  int32 page = 2;
+  int32 pagelen = 3;
+}
+
+message BitbucketListWorkspaceMembersResponse {
+  // Raw JSON of each member object.
+  repeated bytes members = 1;
+  string next_page_url = 2;
+}
+
+// --- List Workspace Groups (REST v1.0) ---
+
+// Workspace groups for team enrichment.
+// Uses the Bitbucket v1.0 groups API (no v2.0 equivalent exists).
+message BitbucketListWorkspaceGroupsRequest {
+  string workspace = 1;
+}
+
+message BitbucketListWorkspaceGroupsResponse {
+  // Raw JSON of each group object (includes inline members).
+  repeated bytes groups = 1;
+}
+
+// --- List PR Commits (REST) ---
+
+// Fetches commits for a single PR.
+// Callers take MIN(date) client-side instead of trusting server ordering.
+message BitbucketListPRCommitsRequest {
+  // Bitbucket workspace slug (the "owner" portion of repo_full_name).
+  string workspace = 1;
+  // Bitbucket repository slug (the part after "/" in repo_full_name).
+  string repo_slug = 2;
+  // PR identifier within the repo (Bitbucket's user-facing PR number).
+  int64 pr_id = 3;
+  // Number of commits per page.
+  int32 pagelen = 4;
+  // Sort field passed to the Bitbucket API (e.g. "date" for ascending by date).
+  string sort = 5;
+}
+
+// Single page of commits for a PR returned by the Bitbucket REST API.
+message BitbucketListPRCommitsResponse {
+  // Raw JSON of each commit object.
+  repeated bytes commits = 1;
+  // Cursor for the next page; empty when there is no further page.
+  string next_page_url = 2;
+}
+
+// --- Get Branch (config capture) ---
+
+// BitbucketGetBranchRequest fetches a branch object
+// (GET /repositories/{ws}/{slug}/refs/branches/{name}) for fetch_config: the
+// allowed/default merge strategies, which live only on the branch object.
+message BitbucketGetBranchRequest {
+  // workspace is the Bitbucket workspace slug.
+  string workspace = 1;
+  // repo_slug is the repository slug within the workspace.
+  string repo_slug = 2;
+  // branch is the branch name (typically the repo's main branch).
+  string branch = 3;
+}
+
+// BitbucketGetBranchResponse carries the branch object verbatim.
+message BitbucketGetBranchResponse {
+  // raw_json is the unmodified branch object body
+  // (carries default_merge_strategy + merge_strategies).
+  bytes raw_json = 1;
+}
+
+// BitbucketListBranchRestrictionsRequest fetches a repo's branch restrictions
+// (GET /repositories/{ws}/{repo}/branch-restrictions) for fetch_config: required
+// approvals + count, required passing builds, restrict-merges, push/force/delete.
+// Requires the repository:admin scope; the op attempts and omits on 403.
+message BitbucketListBranchRestrictionsRequest {
+  // workspace is the Bitbucket workspace slug.
+  string workspace = 1;
+  // repo_slug is the repository slug within the workspace.
+  string repo_slug = 2;
+  // page is the 1-indexed page number.
+  int32 page = 3;
+  // pagelen is the page size (max 100).
+  int32 pagelen = 4;
+}
+
+// BitbucketListBranchRestrictionsResponse carries one page of branch-restriction
+// objects verbatim.
+message BitbucketListBranchRestrictionsResponse {
+  // restrictions holds the raw JSON of each branch-restriction object.
+  repeated bytes restrictions = 1;
+  // next_page_url is the cursor for the next page; empty when none.
+  string next_page_url = 2;
+}
+
+// --- File History (defect-lineage PATH_RECONSTRUCTION) ---
+
+// BitbucketGetFileHistoryRequest lists the commits that modified a file, newest
+// first, renames-aware — GET /repositories/{ws}/{repo}/filehistory/{commit}/{path}.
+// Bitbucket Cloud has no blame endpoint, so the defect-lineage walk reconstructs a
+// culprit from this ordered commit list plus a per-commit diff.
+message BitbucketGetFileHistoryRequest {
+  // workspace is the Bitbucket workspace slug.
+  string workspace = 1;
+  // repo_slug is the repository slug within the workspace.
+  string repo_slug = 2;
+  // commit anchors the history: entries are commits touching the path up to and
+  // including this revision (typically the bug fix's landing commit).
+  string commit = 3;
+  // path is the file's path at `commit`. Slashes are preserved in the URL path.
+  string path = 4;
+  // renames follows the file across renames (Bitbucket's default); each returned
+  // entry carries the path as it was at that revision.
+  bool renames = 5;
+  // page is the 1-indexed page number.
+  int32 page = 6;
+  // pagelen is the page size (max 100).
+  int32 pagelen = 7;
+}
+
+// BitbucketGetFileHistoryResponse carries one page of file-history entries verbatim.
+message BitbucketGetFileHistoryResponse {
+  // entries holds the raw JSON of each {commit, path} object, newest first.
+  repeated bytes entries = 1;
+  // next_page_url is the cursor for the next page; empty when none.
+  string next_page_url = 2;
+}
+
+// BitbucketGetDiffRequest fetches a raw unified diff —
+// GET /repositories/{ws}/{repo}/diff/{spec}?path=&ignore_whitespace=. A single
+// commit spec diffs that commit against its first parent; a..b diffs two revisions.
+message BitbucketGetDiffRequest {
+  // workspace is the Bitbucket workspace slug.
+  string workspace = 1;
+  // repo_slug is the repository slug within the workspace.
+  string repo_slug = 2;
+  // spec is a single commit SHA (diffed against its first parent) or "a..b".
+  string spec = 3;
+  // path filters the diff to a single file.
+  string path = 4;
+  // ignore_whitespace requests a whitespace-insensitive diff so a pure reformat is
+  // not read as a change to the removed line.
+  bool ignore_whitespace = 5;
+}
+
+// BitbucketGetDiffResponse carries the raw git-style unified diff body verbatim
+// (text/plain, not JSON).
+message BitbucketGetDiffResponse {
+  // raw_diff is the unified diff body as returned by Bitbucket.
+  bytes raw_diff = 1;
+}

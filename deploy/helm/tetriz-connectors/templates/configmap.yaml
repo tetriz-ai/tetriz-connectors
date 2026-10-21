@@ -1,0 +1,27 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+{{- if and (include "tetriz.gatewayEnabled" .) (not .Values.gateway.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tetriz.gatewayConfigMap" . }}
+  labels:
+    {{- include "tetriz.labels" . | nindent 4 }}
+data:
+  {{ .Values.gateway.key }}: |
+    {{- include "tetriz.gatewayConfig" . | nindent 4 }}
+{{- end }}
+{{- if .Values.tenantKinds }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tetriz.fullname" . }}-tenant-kinds
+  labels:
+    {{- include "tetriz.labels" . | nindent 4 }}
+data:
+  tenant-kinds: |
+    {{- range $org, $kind := .Values.tenantKinds }}
+    {{ $org }} {{ $kind }}
+    {{- end }}
+{{- end }}

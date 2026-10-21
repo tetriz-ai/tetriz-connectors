@@ -1,0 +1,139 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tetriz.fullname" . }}
+  labels:
+    {{- include "tetriz.labels" . | nindent 4 }}
+    app.kubernetes.io/component: runner
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "tetriz.selectorLabels" (dict "ctx" . "component" "runner") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Roll the pods when the chart's Secret or ConfigMaps change.
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "tetriz.commonLabels" . | nindent 8 }}
+        {{- include "tetriz.selectorLabels" (dict "ctx" . "component" "runner") | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tetriz.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- if .Values.migrations.initContainer }}
+      initContainers:
+        - name: migrate
+          image: {{ include "tetriz.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["migrate"]
+          env:
+            {{- include "tetriz.env" . | nindent 12 }}
+          envFrom:
+            {{- include "tetriz.envFrom" . | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      {{- end }}
+      containers:
+        - name: runner
+          image: {{ include "tetriz.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["serve"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.httpPort }}
+              protocol: TCP
+          env:
+            {{- include "tetriz.env" . | nindent 12 }}
+          envFrom:
+            {{- include "tetriz.envFrom" . | nindent 12 }}
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+            {{- if include "tetriz.gatewayEnabled" . }}
+            - name: gateway
+              mountPath: {{ .Values.gateway.mountPath }}
+              subPath: {{ .Values.gateway.key }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.tenantKinds }}
+            - name: tenant-kinds
+              mountPath: /etc/tetriz/tenant-kinds
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: data
+          {{- toYaml .Values.data.volume | nindent 10 }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        {{- if include "tetriz.gatewayEnabled" . }}
+        - name: gateway
+          configMap:
+            name: {{ include "tetriz.gatewayConfigMap" . }}
+        {{- end }}
+        {{- if .Values.tenantKinds }}
+        - name: tenant-kinds
+          configMap:
+            name: {{ include "tetriz.fullname" . }}-tenant-kinds
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

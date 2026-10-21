@@ -1,0 +1,55 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// Requests to the Codex Enterprise Analytics API at api.chatgpt.com. One endpoint,
+// GET, cursor-paginated, authenticated with a bearer token carrying the single
+// scope codex.enterprise.analytics.read.
+//
+// The response carries its vendor rows as bytes rather than parsed fields, for the
+// reason the sibling Anthropic contract does: several counters are nullable in a way
+// that separates "zero" from "not applicable", which a parser flattening to zero
+// erases. Here it is sharper still — OpenAI publishes no response schema, so the
+// shape below is modelled on a third-party implementer's contract, and a typed field
+// would turn a shape we have not verified into a parse failure over a whole page.
+
+// --- /v1/analytics/codex/workspaces/{workspace_id}/usage ---
+
+// CodexUsageRequest asks for one window of per-developer Codex usage in one
+// workspace.
+message CodexUsageRequest {
+  // workspace_id is a PATH parameter, not a query one. It cannot be derived from the
+  // credential, so an administrator supplies it and it is stored alongside the key.
+  string workspace_id = 1;
+  // start_time is the window start as Unix SECONDS, not a timestamp. The vendor takes
+  // integers here; the field is typed to match the wire rather than converted at the
+  // boundary, so no caller can introduce a timezone or a fractional second into a
+  // value a pagination cursor is bound to.
+  int64 start_time = 2;
+  // end_time is the window end as Unix seconds. Same integer contract as start_time.
+  int64 end_time = 3;
+  // limit is the page size. Zero is sent as absent, which asks the vendor for its own
+  // default rather than for an empty page.
+  int32 limit = 4;
+  // page is the opaque cursor from a previous response's next_page. Empty asks for
+  // the first page.
+  string page = 5;
+}
+
+// CodexUsageResponse carries a window's per-developer usage rows.
+message CodexUsageResponse {
+  // Raw vendor row objects, one per element.
+  repeated bytes usage_rows = 1;
+  // has_more says whether another page exists. It sits alongside the rows on a flat
+  // envelope rather than nested under a page object, which one third-party
+  // implementation does instead; a response satisfying neither shape is a routing
+  // failure rather than an empty page.
+  bool has_more = 2;
+  // next_page is the cursor a following request passes as page.
+  string next_page = 3;
+}

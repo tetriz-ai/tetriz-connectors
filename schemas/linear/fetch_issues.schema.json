@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/linear/fetch_issues.schema.json",
+  "title": "linear fetch_issues",
+  "description": "One record per Linear issue updated since the team's checkpoint, archived ones included. The payload is the connector's IssueNode re-encoded, so every key is always present and nothing else is.",
+  "type": "object",
+  "required": [
+    "id",
+    "identifier",
+    "title",
+    "description",
+    "priority",
+    "estimate",
+    "dueDate",
+    "createdAt",
+    "updatedAt",
+    "completedAt",
+    "canceledAt",
+    "archivedAt",
+    "state",
+    "team",
+    "assignee",
+    "creator",
+    "project",
+    "cycle",
+    "parent",
+    "labels",
+    "attachments"
+  ],
+  "properties": {
+    "id": {
+      "description": "Issue id (UUID). Also the ExternalID. Stable across team moves.",
+      "type": "string"
+    },
+    "identifier": {
+      "description": "Human identifier such as ENG-42. Changes when the issue moves team, so it is not the ExternalID.",
+      "type": "string"
+    },
+    "title": {
+      "description": "Issue title.",
+      "type": "string"
+    },
+    "description": {
+      "description": "Issue description in Markdown. Empty string when unset.",
+      "type": "string"
+    },
+    "priority": {
+      "description": "0 none, 1 urgent, 2 high, 3 medium, 4 low.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "estimate": {
+      "description": "Estimate in the team's points scale, or null when unestimated.",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "dueDate": {
+      "description": "Due date as YYYY-MM-DD, or an empty string when unset.",
+      "type": "string",
+      "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$"
+    },
+    "createdAt": {
+      "description": "When the issue was created. The Go zero time 0001-01-01T00:00:00Z when Linear returned none.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "description": "When the issue last changed. Also the DataDate. The Go zero time 0001-01-01T00:00:00Z when Linear returned none.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "description": "When the issue was completed, or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "canceledAt": {
+      "description": "When the issue was canceled, or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "archivedAt": {
+      "description": "When the entity was archived, or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "state": {
+      "description": "The issue's workflow state. All keys are empty strings when Linear returned no state.",
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "description": "Workflow state id (UUID).",
+          "type": "string"
+        },
+        "name": {
+          "description": "Workflow state name, such as In Progress. Renameable.",
+          "type": "string"
+        },
+        "type": {
+          "description": "State category: triage, backlog, unstarted, started, completed, canceled or duplicate.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "team": {
+      "description": "The team the issue belongs to.",
+      "type": "object",
+      "required": [
+        "id",
+        "key"
+      ],
+      "properties": {
+        "id": {
+          "description": "Team id (UUID).",
+          "type": "string"
+        },
+        "key": {
+          "description": "Team key, such as ENG. Renameable.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "assignee": {
+      "description": "The assignee, or null when unassigned.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "id",
+        "name",
+        "email"
+      ],
+      "properties": {
+        "id": {
+          "description": "User id (UUID).",
+          "type": "string"
+        },
+        "name": {
+          "description": "Full name.",
+          "type": "string"
+        },
+        "email": {
+          "description": "Email address.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "creator": {
+      "description": "The creator, or null when Linear returned none, such as for an integration.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "id",
+        "name",
+        "email"
+      ],
+      "properties": {
+        "id": {
+          "description": "User id (UUID).",
+          "type": "string"
+        },
+        "name": {
+          "description": "Full name.",
+          "type": "string"
+        },
+        "email": {
+          "description": "Email address.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "project": {
+      "description": "The project, or null.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "description": "Project id (UUID).",
+          "type": "string"
+        },
+        "name": {
+          "description": "Project name.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cycle": {
+      "description": "The cycle, or null.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "id",
+        "number",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "description": "Cycle id (UUID).",
+          "type": "string"
+        },
+        "number": {
+          "description": "Cycle number within its team.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Cycle name. Empty string when unnamed.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "parent": {
+      "description": "The parent issue for a sub-issue, or null.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "id",
+        "identifier",
+        "team"
+      ],
+      "properties": {
+        "id": {
+          "description": "Parent issue id (UUID).",
+          "type": "string"
+        },
+        "identifier": {
+          "description": "Parent identifier, such as ENG-7.",
+          "type": "string"
+        },
+        "team": {
+          "description": "The parent's team.",
+          "type": "object",
+          "required": [
+            "id",
+            "key"
+          ],
+          "properties": {
+            "id": {
+              "description": "Team id (UUID).",
+              "type": "string"
+            },
+            "key": {
+              "description": "Team key, such as ENG. Renameable.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "labels": {
+      "description": "The issue's labels connection.",
+      "type": "object",
+      "required": [
+        "nodes"
+      ],
+      "properties": {
+        "nodes": {
+          "description": "The issue's labels. Null when Linear returned no labels connection.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "description": "Label id (UUID).",
+                "type": "string"
+              },
+              "name": {
+                "description": "Label name.",
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "attachments": {
+      "description": "VCS attachment links, capped at 10.",
+      "type": "object",
+      "required": [
+        "nodes",
+        "pageInfo"
+      ],
+      "properties": {
+        "nodes": {
+          "description": "Up to 10 attachments whose sourceType is github or gitlab. Null when Linear returned no attachments connection.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "url",
+              "sourceType"
+            ],
+            "properties": {
+              "url": {
+                "description": "Linked resource URL, such as https://github.com/acme/api/pull/12.",
+                "type": "string"
+              },
+              "sourceType": {
+                "description": "Integration family, such as github.",
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "pageInfo": {
+          "description": "Whether the attachment list was truncated.",
+          "type": "object",
+          "required": [
+            "hasNextPage",
+            "endCursor"
+          ],
+          "properties": {
+            "hasNextPage": {
+              "description": "True when the issue has more than 10 such attachments and the rest were dropped.",
+              "type": "boolean"
+            },
+            "endCursor": {
+              "description": "Always an empty string: the query does not select it.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

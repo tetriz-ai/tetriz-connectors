@@ -1,0 +1,3 @@
+usage: tetriz-connectors connectors
+
+List the connectors, their operations, default schedules and the host services an operation needs.

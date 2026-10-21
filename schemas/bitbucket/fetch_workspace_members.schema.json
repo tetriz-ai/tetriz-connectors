@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_workspace_members.schema.json",
+  "title": "bitbucket fetch_workspace_members",
+  "description": "One workspace member, flattened by the connector (WorkspaceMemberRecord).",
+  "type": "object",
+  "required": ["account_id", "hint_source"],
+  "additionalProperties": false,
+  "properties": {
+    "account_id": {"type": "string", "minLength": 1, "description": "Atlassian account id."},
+    "display_name": {"type": "string", "description": "Omitted when empty."},
+    "nickname": {"type": "string", "description": "Omitted when empty."},
+    "hint_source": {"const": "workspace_members_api"},
+    "groups": {"type": "array", "items": {"type": "string"}, "description": "Workspace group names. Omitted when the groups call failed or the member is in none."}
+  }
+}

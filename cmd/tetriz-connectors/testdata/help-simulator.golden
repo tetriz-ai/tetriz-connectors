@@ -1,0 +1,9 @@
+usage: tetriz-connectors simulator [flags]
+
+Serve the vendor simulator, which needs no credentials and checks none. TETRIZ_SIMULATOR_DSN names its Postgres database.
+
+Flags:
+  -addr string
+    	listen address; the simulator is unauthenticated, so bind it to all interfaces (":8080") only on a private network (default "127.0.0.1:8080")
+  -seed
+    	seed the demo catalog before serving

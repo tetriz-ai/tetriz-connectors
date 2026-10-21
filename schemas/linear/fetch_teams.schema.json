@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/linear/fetch_teams.schema.json",
+  "title": "linear fetch_teams",
+  "description": "One record per Linear team. The payload is the connector's TeamNode re-encoded, so every key is always present and nothing else is.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "key",
+    "description",
+    "timezone",
+    "createdAt",
+    "updatedAt",
+    "archivedAt"
+  ],
+  "properties": {
+    "id": {
+      "description": "Team id (UUID). Also the ExternalID.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Team name.",
+      "type": "string"
+    },
+    "key": {
+      "description": "Team key, the prefix of issue identifiers, such as ENG.",
+      "type": "string"
+    },
+    "description": {
+      "description": "Team description. Empty string when unset.",
+      "type": "string"
+    },
+    "timezone": {
+      "description": "IANA timezone of the team, such as Europe/London.",
+      "type": "string"
+    },
+    "createdAt": {
+      "description": "When the team was created. The Go zero time 0001-01-01T00:00:00Z when Linear returned none.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "description": "When the team last changed. Also the DataDate. The Go zero time 0001-01-01T00:00:00Z when Linear returned none.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "archivedAt": {
+      "description": "When the entity was archived, or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,71 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# Gateway config for the docker-compose demo: the built-in vendor endpoints,
+# with the demo organization routed to the simulator. The simulator answers
+# instantly, so its GitHub, GitLab, Bitbucket and Jira groups get a high rate
+# that the local limiter never reaches.
+#
+# Built-in vendor endpoints. Each group is one rate-limit pool: every request
+# a connector makes through the group draws from RequestsPerSecond, with at
+# most BurstSize in a burst. The rates are conservative defaults below each
+# vendor's published limit; raise one only against a measured budget.
+GitHub:
+  - Group: github-graphql
+    BaseURL: https://api.github.com/graphql
+    RequestsPerSecond: 1000
+    BurstSize: 1000
+  - Group: github-rest
+    BaseURL: https://api.github.com
+    RequestsPerSecond: 1000
+    BurstSize: 1000
+  - Group: github-rest-search
+    BaseURL: https://api.github.com
+    RequestsPerSecond: 1000
+    BurstSize: 1000
+GitLab:
+  - Group: gitlab-rest
+    BaseURL: https://gitlab.com/api/v4
+    RequestsPerSecond: 1000
+    BurstSize: 1000
+Bitbucket:
+  # Bitbucket sends no rate-limit headers; 33 requests a minute.
+  - Group: bitbucket-rest
+    BaseURL: https://api.bitbucket.org/2.0
+    RequestsPerSecond: 1000
+    BurstSize: 1000
+Jira:
+  - Group: jira-rest
+    BaseURL: https://api.atlassian.com
+    RequestsPerSecond: 1000
+    BurstSize: 1000
+Slack:
+  - Group: slack-web
+    BaseURL: https://slack.com/api
+    RequestsPerSecond: 0.33
+    BurstSize: 1
+Cursor:
+  # 20 requests a minute for the Admin API, 60 for billed usage events.
+  - Group: cursor-admin
+    BaseURL: https://api.cursor.com
+    RequestsPerSecond: 0.33
+    BurstSize: 1
+  - Group: cursor-usage
+    BaseURL: https://api.cursor.com
+    RequestsPerSecond: 0.9
+    BurstSize: 1
+Anthropic:
+  - Group: anthropic-analytics
+    BaseURL: https://api.anthropic.com
+    RequestsPerSecond: 0.9
+    BurstSize: 1
+Codex:
+  - Group: codex-analytics
+    BaseURL: https://api.chatgpt.com
+    RequestsPerSecond: 0.5
+    BurstSize: 1
+# Organizations listed here send their GitHub, GitLab, Bitbucket and Jira
+# traffic to SimulatorBaseURL instead of the vendor.
+SimulatorOrgIDs:
+  - 00000000-0000-4000-8000-00000000d3e0
+SimulatorBaseURL: http://simulator:8080

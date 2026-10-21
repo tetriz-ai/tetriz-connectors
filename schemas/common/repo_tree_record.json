@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/common/repo_tree_record.json",
+  "title": "RepoTreeRecord (protojson)",
+  "description": "tetriz.connectors.connector.v1.RepoTreeRecord encoded with protojson.Marshal: lowerCamelCase keys, zero values omitted, Timestamp as RFC 3339.",
+  "type": "object",
+  "required": ["platformRepoId", "treeSha", "treeBranch", "fetchedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "platformRepoId": {"type": "string", "minLength": 1},
+    "treeSha": {"type": "string", "minLength": 1},
+    "treeBranch": {"type": "string", "minLength": 1},
+    "treeS3Key": {"type": "string", "description": "Blob store key of the JSON tree. A noChange record repeats the key of the tree written for the same SHA."},
+    "treeTruncated": {"type": "boolean"},
+    "noChange": {"type": "boolean"},
+    "fetchedAt": {"type": "string", "format": "date-time"}
+  }
+}

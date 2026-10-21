@@ -1,0 +1,5 @@
+{
+  "run_id": "e4cd0ad7-f5c6-4692-9699-4d8a8158c495",
+  "status": "completed",
+  "records_emitted": 3
+}

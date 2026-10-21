@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_copilot_usage.schema.json",
+  "title": "github fetch_copilot_usage",
+  "description": "One day of Copilot metrics, passed through unchanged from the GitHub REST API. snake_case keys. Two record kinds share the operation, told apart by metadata type: org_metrics is one element of GET /orgs/{org}/copilot/metrics, and user_metrics is one element of GET /orgs/{org}/copilot/usage/user. GitHub can add keys to both.",
+  "oneOf": [
+    {
+      "title": "org_metrics",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["date"],
+      "not": {"required": ["day"]},
+      "properties": {
+        "date": {"type": "string", "format": "date"},
+        "total_active_users": {"type": "integer"},
+        "total_engaged_users": {"type": "integer"},
+        "copilot_ide_code_completions": {"type": ["object", "null"]},
+        "copilot_ide_chat": {"type": ["object", "null"]},
+        "copilot_dotcom_chat": {"type": ["object", "null"]},
+        "copilot_dotcom_pull_requests": {"type": ["object", "null"]}
+      }
+    },
+    {
+      "title": "user_metrics",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["day", "github_com_user_id"],
+      "properties": {
+        "day": {"type": "string", "format": "date"},
+        "github_com_user_id": {"type": ["string", "integer"], "minLength": 1, "description": "A numeric user id, as a string or a JSON number; both are passed through. An element without one is skipped."}
+      }
+    }
+  ]
+}

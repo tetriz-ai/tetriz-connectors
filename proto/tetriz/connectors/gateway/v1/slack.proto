@@ -1,0 +1,89 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// --- users.list ---
+
+message SlackListUsersRequest {
+  int32 limit = 1;
+  string cursor = 2;
+}
+
+message SlackListUsersResponse {
+  repeated bytes members = 1;
+  string next_cursor = 2;
+  bool ok = 3;
+  string error = 4;
+}
+
+// --- conversations.list ---
+
+message SlackListConversationsRequest {
+  string types = 1;         // e.g., "public_channel"
+  bool exclude_archived = 2;
+  int32 limit = 3;
+  string cursor = 4;
+}
+
+message SlackListConversationsResponse {
+  repeated bytes channels = 1;
+  string next_cursor = 2;
+  bool ok = 3;
+  string error = 4;
+}
+
+// --- conversations.history ---
+
+message SlackConversationsHistoryRequest {
+  string channel = 1;
+  string oldest = 2;
+  string latest = 3;
+  int32 limit = 4;
+  string cursor = 5;
+}
+
+message SlackConversationsHistoryResponse {
+  repeated bytes messages = 1;
+  bool has_more = 2;
+  string next_cursor = 3;
+  bool ok = 4;
+  string error = 5;
+}
+
+// --- conversations.replies ---
+
+message SlackConversationsRepliesRequest {
+  string channel = 1;
+  string ts = 2;
+  int32 limit = 3;
+  string cursor = 4;
+}
+
+message SlackConversationsRepliesResponse {
+  repeated bytes messages = 1;
+  bool has_more = 2;
+  string next_cursor = 3;
+  bool ok = 4;
+  string error = 5;
+}
+
+// --- admin.analytics.getFile ---
+
+message SlackAdminAnalyticsRequest {
+  string type = 1;  // "member" or "channel"
+  string date = 2;  // "YYYY-MM-DD"
+}
+
+message SlackAdminAnalyticsResponse {
+  // NDJSON lines, each line is one analytics record.
+  repeated bytes records = 1;
+  bool ok = 2;
+  string error = 3;
+  int32 status_code = 4;  // for detecting 403 (not Business+)
+}
+

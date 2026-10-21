@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_pr_comments.schema.json",
+  "title": "bitbucket fetch_pr_comments",
+  "description": "One Bitbucket pull request comment object, verbatim. A comment without created_on is never emitted.",
+  "type": "object",
+  "required": ["id", "created_on"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {"type": "integer"},
+    "created_on": {"type": "string", "format": "date-time"},
+    "updated_on": {"type": ["string", "null"]},
+    "user": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "uuid": {"type": "string"},
+        "account_id": {"type": "string"},
+        "display_name": {"type": "string"},
+        "nickname": {"type": "string"}
+      }
+    },
+    "content": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "raw": {"type": "string"},
+        "markup": {"type": "string"},
+        "html": {"type": "string"}
+      }
+    },
+    "inline": {"type": ["object", "null"], "description": "File path and line for an inline comment."},
+    "parent": {"type": ["object", "null"], "properties": {"id": {"type": "integer"}}},
+    "deleted": {"type": "boolean"},
+    "pending": {"type": "boolean"},
+    "type": {"type": "string"},
+    "links": {"type": "object"}
+  }
+}

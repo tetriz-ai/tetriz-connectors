@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/cursor/fetch_usage_events.schema.json",
+  "title": "cursor fetch_usage_events",
+  "description": "One billed model call: the raw Cursor event object from POST /teams/filtered-usage-events, stored verbatim. The connector reads only timestamp, conversationId and userEmail; every other key is the vendor's.",
+  "type": "object",
+  "required": ["timestamp", "conversationId"],
+  "properties": {
+    "timestamp": {
+      "description": "When the call was billed, as epoch milliseconds encoded as a decimal string (not a number). The connector skips an event whose value does not parse as a positive integer.",
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "conversationId": {
+      "description": "The conversation the call belonged to. Never empty: an event without it is skipped.",
+      "type": "string",
+      "minLength": 1
+    },
+    "userEmail": {
+      "description": "The developer's email. Copied to metadata user_email; empty or absent on some events.",
+      "type": "string"
+    },
+    "model": {
+      "description": "Vendor field. Mixes internal model identifiers with display names.",
+      "type": "string"
+    },
+    "kind": {
+      "description": "Vendor field. A human-readable label such as \"Example plan\", not a stable code.",
+      "type": "string"
+    },
+    "maxMode": {
+      "description": "Vendor field.",
+      "type": "boolean"
+    },
+    "requestsCosts": {
+      "description": "Vendor field. Request units charged.",
+      "type": "number"
+    },
+    "isTokenBasedCall": {
+      "description": "Vendor field.",
+      "type": "boolean"
+    },
+    "isChargeable": {
+      "description": "Vendor field.",
+      "type": "boolean"
+    },
+    "isHeadless": {
+      "description": "Vendor field.",
+      "type": "boolean"
+    },
+    "tokenUsage": {
+      "description": "Vendor field. Token breakdown; absent on a small fraction of events.",
+      "type": "object",
+      "properties": {
+        "inputTokens": { "description": "Input tokens.", "type": "number" },
+        "outputTokens": { "description": "Output tokens.", "type": "number" },
+        "cacheWriteTokens": { "description": "Cache write tokens.", "type": "number" },
+        "cacheReadTokens": { "description": "Cache read tokens.", "type": "number" },
+        "totalCents": { "description": "Token cost in US cents.", "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "chargedCents": {
+      "description": "Vendor field. Amount charged in US cents, fractional.",
+      "type": "number"
+    },
+    "cursorTokenFee": {
+      "description": "Vendor field.",
+      "type": "number"
+    },
+    "serviceAccountId": {
+      "description": "Vendor field. Arrives as the literal string \"null\" when there is no service account, not as JSON null.",
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

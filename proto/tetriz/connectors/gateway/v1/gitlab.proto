@@ -1,0 +1,287 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// ─── List Group Projects ─────────────────────────────────────────────────────
+
+message GitLabListProjectsRequest {
+  int64 group_id = 1;
+  int32 page     = 2;
+  int32 per_page = 3;
+}
+
+message GitLabListProjectsResponse {
+  repeated bytes projects      = 1; // raw JSON objects
+  string         next_page_url = 2; // set from X-Next-Page header; empty when last page
+}
+
+// ─── List Commits ────────────────────────────────────────────────────────────
+
+message GitLabListCommitsRequest {
+  // project_id is the GitLab project ID.
+  int64  project_id = 1;
+  // since is a RFC3339 timestamp; empty fetches from the beginning.
+  string since      = 2;
+  // page is the 1-based page number for pagination.
+  int32  page       = 3;
+  // per_page is the number of commits per page; 0 defaults to 100.
+  int32  per_page   = 4;
+  // ref_name is the branch or tag name; empty uses the API default branch.
+  string ref_name   = 5;
+  // first_parent follows only first-parent commits when true, excluding
+  // commits from merged branches. Useful for tracking only the trunk history.
+  bool   first_parent = 6;
+}
+
+message GitLabListCommitsResponse {
+  repeated bytes commits      = 1; // raw JSON objects
+  string         next_page_url = 2;
+}
+
+// ─── List Issues ─────────────────────────────────────────────────────────────
+
+message GitLabListIssuesRequest {
+  int64  group_id      = 1;
+  string updated_after = 2; // RFC3339 timestamp; empty for full fetch
+  int32  page          = 3;
+  int32  per_page      = 4;
+}
+
+message GitLabListIssuesResponse {
+  repeated bytes issues       = 1; // raw JSON objects
+  string         next_page_url = 2;
+}
+
+// ─── List Notes ──────────────────────────────────────────────────────────────
+
+message GitLabListNotesRequest {
+  int64  project_id        = 1;
+  string updated_after     = 2; // RFC3339 timestamp; empty for full fetch
+  int32  page              = 3;
+  int32  per_page          = 4;
+  int64  merge_request_iid = 5; // MR IID — notes are fetched per merge request
+}
+
+message GitLabListNotesResponse {
+  repeated bytes notes        = 1; // raw JSON objects
+  string         next_page_url = 2;
+}
+
+// ─── List Group Members ───────────────────────────────────────────────────────
+
+message GitLabListGroupMembersRequest {
+  int64 group_id = 1;
+  int32 page     = 2;
+  int32 per_page = 3;
+}
+
+message GitLabListGroupMembersResponse {
+  repeated bytes members      = 1; // raw JSON objects
+  string         next_page_url = 2;
+}
+
+// ─── List Project Merge Requests ─────────────────────────────────────────────
+
+// Project-level MR listing with diff stats (replaces group-level for enrichment).
+message GitLabListProjectMergeRequestsRequest {
+  int64  project_id    = 1;
+  string updated_after = 2; // RFC3339 timestamp; empty for full fetch
+  int32  page          = 3;
+  int32  per_page      = 4;
+  bool   with_stats    = 5;
+}
+
+message GitLabListProjectMergeRequestsResponse {
+  repeated bytes merge_requests = 1; // raw JSON objects
+  string         next_page_url  = 2;
+}
+
+// ─── Get Commit Detail ────────────────────────────────────────────────────────
+
+// Single commit detail with stats (additions/deletions).
+message GitLabGetCommitDetailRequest {
+  int64  project_id = 1;
+  string sha        = 2;
+}
+
+message GitLabGetCommitDetailResponse {
+  bytes commit = 1; // raw JSON object
+}
+
+// ─── List MR Diffs ───────────────────────────────────────────────────────────
+
+// Paginated MR diff entries for per-file line stat extraction.
+message GitLabListMRDiffsRequest {
+  int64 project_id        = 1;
+  int64 merge_request_iid = 2;
+  int32 page              = 3;
+  int32 per_page          = 4;
+}
+
+message GitLabListMRDiffsResponse {
+  repeated bytes diffs         = 1; // raw JSON diff objects
+  string         next_page_url = 2;
+}
+
+// ─── List MR Closes-Issues ────────────────────────────────────────────────────
+
+// GitLabListMRClosesIssuesRequest fetches the issues an MR closes via keyword
+// refs, for native PR→issue linkage.
+message GitLabListMRClosesIssuesRequest {
+  // project_id is the GitLab numeric project id.
+  int64 project_id        = 1;
+  // merge_request_iid is the MR's project-scoped IID.
+  int64 merge_request_iid = 2;
+}
+
+// GitLabListMRClosesIssuesResponse carries the closing-issues payload.
+message GitLabListMRClosesIssuesResponse {
+  // issues is the raw JSON array of issue objects, passed through verbatim to
+  // a consumer's extractor.
+  bytes issues = 1;
+}
+
+// ─── List MR Approvals ────────────────────────────────────────────────────────
+
+// MR approvals for review state extraction.
+message GitLabListMRApprovalsRequest {
+  int64 project_id = 1;
+  int64 iid        = 2;
+}
+
+message GitLabListMRApprovalsResponse {
+  bytes approvals = 1; // raw JSON object
+}
+
+// ─── List Subgroups ─────────────────────────────────────────────────────────
+
+// List subgroups of a group, for GitLab team/group memberships.
+message GitLabListSubgroupsRequest {
+  int64 group_id = 1;
+  int32 page     = 2;
+  int32 per_page = 3;
+}
+
+message GitLabListSubgroupsResponse {
+  repeated bytes subgroups    = 1; // raw JSON objects
+  string         next_page_url = 2;
+}
+
+// ─── List Group Direct Members ──────────────────────────────────────────────
+
+// Direct members of a group (NOT /members/all). Used per-subgroup for team enrichment.
+message GitLabListGroupDirectMembersRequest {
+  int64 group_id = 1;
+  int32 page     = 2;
+  int32 per_page = 3;
+}
+
+message GitLabListGroupDirectMembersResponse {
+  repeated bytes members      = 1; // raw JSON objects
+  string         next_page_url = 2;
+}
+
+// ─── Get User ───────────────────────────────────────────────────────────────
+
+// Single user profile, for the public/commit email used in identity linking.
+message GitLabGetUserRequest {
+  int64 user_id = 1;
+}
+
+message GitLabGetUserResponse {
+  bytes user = 1; // raw JSON object
+}
+
+// ─── List MR Commits ─────────────────────────────────────────────────────────
+
+// Fetches commits for a single MR.
+// Sort ascending by created_at so per_page=1 returns the earliest commit.
+message GitLabListMRCommitsRequest {
+  // GitLab project ID (numeric string or URL-encoded path).
+  string project_id = 1;
+  // MR's project-scoped IID (the user-facing "!N" number within the project).
+  int32  mr_iid     = 2;
+  // Pagination size (caller passes 1 for first_commit_at use case).
+  int32  per_page   = 3;
+  // Field to order by ("created_at" / "default").
+  string order_by   = 4;
+  // Sort direction ("asc" / "desc").
+  string sort       = 5;
+}
+
+// Single page of commits for an MR returned by the GitLab REST API.
+message GitLabListMRCommitsResponse {
+  // Raw JSON commit objects from /merge_requests/:iid/commits.
+  repeated bytes commits      = 1;
+  // True when GitLab indicates additional pages remain.
+  bool           has_next_page = 2;
+}
+
+// ─── Get Project / Get Group (config capture) ───────────────────────────────
+
+// GitLabGetProjectRequest fetches a single project's settings (GET /projects/:id)
+// for fetch_config: merge_method, squash_option, default_branch.
+message GitLabGetProjectRequest {
+  // project_id is the numeric GitLab project id.
+  int64 project_id = 1;
+}
+
+// GitLabGetProjectResponse carries the project object verbatim.
+message GitLabGetProjectResponse {
+  // raw_json is the unmodified GET /projects/:id response body.
+  bytes raw_json = 1;
+}
+
+// GitLabGetGroupRequest fetches a group's settings (GET /groups/:id) for
+// fetch_config: default_branch_protection_defaults and other cascading defaults.
+message GitLabGetGroupRequest {
+  // group_id is the numeric GitLab group id.
+  int64 group_id = 1;
+}
+
+// GitLabGetGroupResponse carries the group object verbatim.
+message GitLabGetGroupResponse {
+  // raw_json is the unmodified GET /groups/:id response body.
+  bytes raw_json = 1;
+}
+
+// GitLabGetProjectApprovalsRequest fetches a project's merge-request approval
+// settings (GET /projects/:id/approvals) for fetch_config: required approval
+// count, reset-approvals-on-push, author/committer-approval rules.
+message GitLabGetProjectApprovalsRequest {
+  // project_id is the numeric GitLab project id.
+  int64 project_id = 1;
+}
+
+// GitLabGetProjectApprovalsResponse carries the approvals object verbatim.
+message GitLabGetProjectApprovalsResponse {
+  // raw_json is the unmodified GET /projects/:id/approvals body.
+  bytes raw_json = 1;
+}
+
+// GitLabListProtectedBranchesRequest fetches a project's protected branches
+// (GET /projects/:id/protected_branches) for fetch_config: per-branch
+// allowed-to-merge/push access and code-owner-approval requirement.
+message GitLabListProtectedBranchesRequest {
+  // project_id is the numeric GitLab project id.
+  int64 project_id = 1;
+  // page is the 1-indexed page number.
+  int32 page = 2;
+  // per_page is the page size (max 100).
+  int32 per_page = 3;
+}
+
+// GitLabListProtectedBranchesResponse carries one page of protected-branch
+// objects verbatim.
+message GitLabListProtectedBranchesResponse {
+  // protected_branches holds the raw JSON of each protected-branch object.
+  repeated bytes protected_branches = 1;
+  // next_page_url is reserved for pagination but currently unset: fetch_config
+  // reads a single page (per_page=100) since protected-branch lists are small.
+  string next_page_url = 2;
+}

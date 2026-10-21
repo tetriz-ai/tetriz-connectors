@@ -1,0 +1,50 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.connector.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/connector/v1;connectorpb";
+
+import "google/protobuf/timestamp.proto";
+
+// ConnectorDataEvent is the transport envelope for records published
+// by the connector framework to downstream queues. Used for both
+// pull-based sync operations and push-based webhook ingestion.
+message ConnectorDataEvent {
+  string connector_id = 1;
+  string operation_id = 2;
+  string organization_id = 3;
+  string external_id = 4;
+  // Raw JSON payload from the vendor API (opaque to the framework).
+  bytes payload = 5;
+  google.protobuf.Timestamp fetched_at = 6;
+  map<string, string> metadata = 7;
+  // Actual date of the event/activity (e.g., PR updatedAt, commit committedDate).
+  // When absent the consumer falls back to fetched_at.
+  google.protobuf.Timestamp data_date = 8;
+  // Identifies the sync run that produced this record, so records can be grouped
+  // by the vendor listing they came from. A UUID; empty for records emitted
+  // outside an orchestrated run (webhook ingestion, direct emitters), and empty
+  // means the record is unattributed.
+  //
+  // Attribution only — it does NOT assert the run observed the vendor's complete
+  // set. A run can be marked complete having skipped an entity whose fetch
+  // failed, and a run that dies mid-way has already emitted what it published, so
+  // a consumer treating "records from the newest run" as a full listing will
+  // under-count. Pair it with an independent completeness signal (the
+  // producer-declared entity total) before inferring that anything was removed
+  // at the vendor.
+  string sync_run_id = 9;
+}
+
+// ConnectorDataEnvelope is the message body a Publisher sends: one or more
+// events for one organization. Field numbers 2 and 3 match the queue body the
+// sink has always produced, so a consumer decoding that shape reads this one.
+message ConnectorDataEnvelope {
+  reserved 1;
+  repeated ConnectorDataEvent events = 2;
+  // organization_id is the tenant the events belong to.
+  string organization_id = 3;
+}

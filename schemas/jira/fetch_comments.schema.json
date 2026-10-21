@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/jira/fetch_comments.schema.json",
+  "title": "jira fetch_comments",
+  "description": "One issue comment, as the Jira REST API v3 comment list returns it, byte for byte. camelCase keys.",
+  "type": "object",
+  "required": ["id"],
+  "additionalProperties": true,
+  "properties": {
+    "self": {"type": "string"},
+    "id": {"type": "string", "minLength": 1},
+    "author": {"$ref": "../common/jira.json#/$defs/user"},
+    "updateAuthor": {"$ref": "../common/jira.json#/$defs/user"},
+    "body": {"$ref": "../common/jira.json#/$defs/adf"},
+    "created": {"$ref": "../common/jira.json#/$defs/time"},
+    "updated": {"$ref": "../common/jira.json#/$defs/time"},
+    "jsdPublic": {"type": "boolean"},
+    "visibility": {"type": "object", "additionalProperties": true}
+  }
+}

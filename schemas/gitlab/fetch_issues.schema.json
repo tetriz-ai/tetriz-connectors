@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_issues.schema.json",
+  "title": "gitlab fetch_issues",
+  "description": "One issue lifecycle record (ADR-0003; metadata event_type opened, closed or snapshot). Every kind carries the GitLab REST issue object unchanged (GET /groups/:id/issues). webhook_events emits the Issue Hook's records under its own operationId.",
+  "$ref": "#/$defs/restIssue",
+  "$defs": {
+    "user": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "username": {"type": "string"},
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "bot": {"type": "boolean"}
+      }
+    },
+    "restIssue": {
+      "title": "REST issue",
+      "type": "object",
+      "required": ["id", "iid", "project_id", "state", "created_at", "updated_at"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "iid": {"type": "integer", "description": "Project-scoped issue number."},
+        "project_id": {"type": "integer"},
+        "title": {"type": "string"},
+        "description": {"type": ["string", "null"]},
+        "state": {"enum": ["opened", "closed"]},
+        "issue_type": {"type": "string", "description": "Lowercase with underscores: issue, incident, test_case, task."},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "closed_at": {"type": ["string", "null"], "format": "date-time"},
+        "labels": {"type": "array", "items": {"type": "string"}},
+        "author": {"$ref": "#/$defs/user"},
+        "assignees": {"type": "array", "items": {"$ref": "#/$defs/user"}},
+        "references": {"type": "object", "additionalProperties": true, "properties": {"full": {"type": "string"}}}
+      }
+    }
+  }
+}

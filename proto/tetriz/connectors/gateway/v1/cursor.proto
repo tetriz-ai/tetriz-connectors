@@ -1,0 +1,53 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// --- /teams/members ---
+
+// CursorListTeamMembersRequest takes no parameters: the endpoint returns every
+// member of the team the credential belongs to, and Cursor exposes no paging on
+// it. The message exists so the gateway's factory has a type to dispatch on.
+message CursorListTeamMembersRequest {}
+
+// --- /teams/filtered-usage-events ---
+
+// CursorFilteredUsageEventsRequest asks for billed model calls in a window.
+// Dates are epoch milliseconds and the window is inclusive at both ends, which is
+// the vendor's contract rather than ours.
+message CursorFilteredUsageEventsRequest {
+  // start_date is the window's start, epoch milliseconds, inclusive.
+  int64 start_date = 1;
+  // end_date is the window's end, epoch milliseconds, inclusive.
+  int64 end_date = 2;
+  // page is 1-based. Zero is sent as absent, taking the vendor's first page.
+  int32 page = 3;
+  // page_size accepts 1..1000. Zero is sent as absent, which the vendor reads as
+  // 100, so a caller wanting the cheapest possible request sets 1 explicitly.
+  int32 page_size = 4;
+}
+
+// CursorFilteredUsageEventsResponse carries the billed events in the window.
+message CursorFilteredUsageEventsResponse {
+  // Raw vendor event objects, one per element, for the same reason the members
+  // response uses bytes: the framework never inspects a vendor payload, and a field
+  // Cursor adds later survives without a proto change.
+  repeated bytes usage_events = 1;
+  // total_usage_events_count is the vendor's own count for the whole window, not
+  // the length of the returned page — reconcile a stored count against this, never
+  // against len(usage_events).
+  int64 total_usage_events_count = 2;
+}
+
+// CursorListTeamMembersResponse carries the team's roster. An empty
+// team_members is a valid response for a team with no members, not an error.
+message CursorListTeamMembersResponse {
+  // Raw vendor member objects, one per element. Carried as bytes for the same
+  // reason every other connector does it: the framework never inspects a vendor
+  // payload, and a field Cursor adds later survives without a proto change.
+  repeated bytes team_members = 1;
+}

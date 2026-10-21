@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_reviews.schema.json",
+  "title": "github fetch_reviews",
+  "description": "One pull request review: the GitHub REST body from GET /repos/{owner}/{repo}/pulls/{number}/reviews, passed through unchanged. snake_case keys. GitHub can add keys.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["id", "user", "state"],
+  "properties": {
+    "id": {"type": "integer"},
+    "node_id": {"type": "string"},
+    "user": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "description": "Null for a deleted account.",
+      "properties": {
+        "login": {"type": "string"},
+        "id": {"type": "integer"},
+        "type": {"type": "string", "description": "User, Bot, Organization or Mannequin."}
+      }
+    },
+    "body": {"type": ["string", "null"]},
+    "state": {"type": "string", "description": "APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED or PENDING."},
+    "submitted_at": {"type": ["string", "null"], "format": "date-time", "description": "Null for a pending review."},
+    "commit_id": {"type": ["string", "null"]},
+    "author_association": {"type": "string"},
+    "html_url": {"type": "string"},
+    "pull_request_url": {"type": "string"}
+  }
+}

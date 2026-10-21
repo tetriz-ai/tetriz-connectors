@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_prs.schema.json",
+  "title": "github fetch_prs",
+  "description": "One pull request: the GraphQL PullRequest node from buildPRsQuery, re-marshalled from the connector's ghGQLPRNode struct. camelCase keys. Every key is always written, fields the struct does not declare are dropped, an absent list is null, and a deleted account is {\"login\":\"\",\"databaseId\":0} rather than null. The opened, merged, closed and snapshot records of one pull request (metadata event_type) carry the same payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["number", "updatedAt", "title", "url", "state", "baseRefName", "headRefName", "createdAt", "mergedAt", "closedAt", "additions", "deletions", "changedFiles", "mergeable", "author", "mergedBy", "comments", "reviews", "reviewDecision", "reviewRequests", "body", "isDraft", "mergeCommit", "closingIssuesReferences", "files", "commits", "isCrossRepository", "headRepositoryOwner"],
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["login", "databaseId"],
+      "properties": {
+        "login": {"type": "string", "description": "Empty for a deleted account."},
+        "databaseId": {"type": "integer", "description": "Stable user id; 0 for a deleted account or a bot."}
+      }
+    },
+    "count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCount"],
+      "properties": {"totalCount": {"type": "integer", "minimum": 0}}
+    }
+  },
+  "properties": {
+    "number": {"type": "integer", "minimum": 1},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "title": {"type": "string"},
+    "url": {"type": "string"},
+    "state": {"enum": ["OPEN", "CLOSED", "MERGED"]},
+    "baseRefName": {"type": "string"},
+    "headRefName": {"type": "string"},
+    "createdAt": {"type": "string", "format": "date-time"},
+    "mergedAt": {"type": ["string", "null"], "format": "date-time"},
+    "closedAt": {"type": ["string", "null"], "format": "date-time"},
+    "additions": {"type": "integer"},
+    "deletions": {"type": "integer"},
+    "changedFiles": {"type": "integer"},
+    "mergeable": {"type": "string", "description": "MERGEABLE, CONFLICTING or UNKNOWN; empty when not reported."},
+    "author": {"$ref": "#/$defs/actor"},
+    "mergedBy": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["login"],
+      "properties": {"login": {"type": "string"}}
+    },
+    "comments": {"$ref": "#/$defs/count"},
+    "reviews": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCount", "nodes"],
+      "properties": {
+        "totalCount": {"type": "integer", "minimum": 0},
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["author", "state", "submittedAt"],
+            "properties": {
+              "author": {"$ref": "#/$defs/actor"},
+              "state": {"type": "string"},
+              "submittedAt": {"type": "string", "format": "date-time", "description": "0001-01-01T00:00:00Z for a pending review."}
+            }
+          }
+        }
+      }
+    },
+    "reviewDecision": {"type": ["string", "null"], "description": "APPROVED, CHANGES_REQUESTED or REVIEW_REQUIRED; null when no review is required."},
+    "reviewRequests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCount", "nodes"],
+      "properties": {
+        "totalCount": {"type": "integer", "minimum": 0},
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["requestedReviewer"],
+            "properties": {
+              "requestedReviewer": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["login", "slug"],
+                "properties": {
+                  "login": {"type": "string", "description": "Empty for a team."},
+                  "databaseId": {"type": "integer", "description": "Absent for a team."},
+                  "slug": {"type": "string", "description": "Team slug; empty for a user."}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "body": {"type": "string", "description": "Markdown. fetch_prs_data stores the same body in the blob store."},
+    "isDraft": {"type": "boolean"},
+    "mergeCommit": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["message", "parents"],
+      "properties": {
+        "message": {"type": "string"},
+        "parents": {"$ref": "#/$defs/count"}
+      }
+    },
+    "closingIssuesReferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["number", "title", "state", "repository"],
+            "properties": {
+              "number": {"type": "integer"},
+              "title": {"type": "string"},
+              "state": {"type": "string"},
+              "repository": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["nameWithOwner"],
+                "properties": {"nameWithOwner": {"type": "string"}}
+              }
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "pageInfo"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "additions", "deletions"],
+            "properties": {
+              "path": {"type": "string"},
+              "additions": {"type": "integer"},
+              "deletions": {"type": "integer"}
+            }
+          }
+        },
+        "pageInfo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hasNextPage"],
+          "properties": {"hasNextPage": {"type": "boolean", "description": "True when GraphQL truncated the list at 100 files; metadata files_changed then holds the full REST list."}}
+        }
+      }
+    },
+    "commits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["commit"],
+            "properties": {
+              "commit": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["authoredDate", "committedDate"],
+                "properties": {
+                  "authoredDate": {"type": "string", "format": "date-time"},
+                  "committedDate": {"type": "string", "format": "date-time"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "isCrossRepository": {"type": "boolean"},
+    "headRepositoryOwner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["login"],
+      "properties": {"login": {"type": "string", "description": "Empty when the head repository is gone."}}
+    }
+  }
+}

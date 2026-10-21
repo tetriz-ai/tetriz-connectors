@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_issues.schema.json",
+  "title": "github fetch_issues",
+  "description": "One issue: the GraphQL Issue node from buildIssuesQuery, re-marshalled from the connector's ghGQLIssueNode struct, with every comment page merged in. camelCase keys. Every key except issueType and parent is always written, an absent list is null, and a deleted account is {\"login\":\"\",\"databaseId\":0}. The opened, closed and snapshot records of one issue (metadata event_type) carry the same payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["number", "updatedAt", "title", "url", "state", "stateReason", "createdAt", "closedAt", "body", "repository", "author", "assignees", "labels", "milestone", "subIssues", "participants", "comments", "projectItems", "closedByPullRequestsReferences"],
+  "$defs": {
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["login", "databaseId"],
+      "properties": {
+        "login": {"type": "string"},
+        "databaseId": {"type": "integer"}
+      }
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nameWithOwner"],
+      "properties": {"nameWithOwner": {"type": "string"}}
+    },
+    "count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCount"],
+      "properties": {"totalCount": {"type": "integer", "minimum": 0}}
+    }
+  },
+  "properties": {
+    "number": {"type": "integer", "minimum": 1},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "title": {"type": "string"},
+    "url": {"type": "string"},
+    "state": {"enum": ["OPEN", "CLOSED"]},
+    "stateReason": {"type": ["string", "null"], "description": "COMPLETED, NOT_PLANNED, REOPENED or DUPLICATE; null when GitHub reports none."},
+    "createdAt": {"type": "string", "format": "date-time"},
+    "closedAt": {"type": ["string", "null"], "format": "date-time"},
+    "body": {"type": "string", "description": "Markdown. fetch_issues_data stores the same body in the blob store."},
+    "repository": {"$ref": "#/$defs/repo"},
+    "author": {"$ref": "#/$defs/actor"},
+    "assignees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {"nodes": {"type": ["array", "null"], "items": {"$ref": "#/$defs/actor"}}}
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {"name": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "milestone": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["number", "title", "state", "dueOn"],
+      "properties": {
+        "number": {"type": "integer"},
+        "title": {"type": "string"},
+        "state": {"type": "string"},
+        "dueOn": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "issueType": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"type": "string"}},
+      "description": "GitHub native issue type. Absent when the issue has none."
+    },
+    "parent": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["number", "repository"],
+      "properties": {
+        "number": {"type": "integer"},
+        "repository": {"$ref": "#/$defs/repo"}
+      },
+      "description": "Parent issue of a sub-issue. Absent on a top-level issue."
+    },
+    "subIssues": {"$ref": "#/$defs/count"},
+    "participants": {"$ref": "#/$defs/count"},
+    "comments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCount", "nodes", "pageInfo"],
+      "properties": {
+        "totalCount": {"type": "integer", "minimum": 0},
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "body", "author", "createdAt", "updatedAt"],
+            "properties": {
+              "id": {"type": "string", "description": "GraphQL node id."},
+              "body": {"type": "string"},
+              "author": {"$ref": "#/$defs/actor"},
+              "createdAt": {"type": "string", "format": "date-time"},
+              "updatedAt": {"type": "string", "format": "date-time"}
+            }
+          }
+        },
+        "pageInfo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hasNextPage", "endCursor"],
+          "properties": {
+            "hasNextPage": {"type": "boolean"},
+            "endCursor": {"type": "string"}
+          }
+        }
+      }
+    },
+    "projectItems": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["project", "fieldValues"],
+            "properties": {
+              "project": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["title", "number"],
+                "properties": {
+                  "title": {"type": "string"},
+                  "number": {"type": "integer"}
+                }
+              },
+              "fieldValues": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["nodes"],
+                "properties": {
+                  "nodes": {
+                    "type": ["array", "null"],
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["field"],
+                      "description": "A ProjectV2 field value. Which keys are present tells the variant: name (single select), text, number, or title with startDate and duration (iteration).",
+                      "properties": {
+                        "name": {"type": "string"},
+                        "text": {"type": "string"},
+                        "number": {"type": "number"},
+                        "title": {"type": "string"},
+                        "startDate": {"type": "string", "format": "date"},
+                        "duration": {"type": "integer"},
+                        "field": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["name"],
+                          "properties": {"name": {"type": "string"}}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "closedByPullRequestsReferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["number", "state", "repository"],
+            "properties": {
+              "number": {"type": "integer"},
+              "state": {"type": "string"},
+              "repository": {"$ref": "#/$defs/repo"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

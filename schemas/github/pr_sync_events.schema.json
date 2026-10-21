@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/pr_sync_events.schema.json",
+  "title": "github pr_sync_events",
+  "description": "A pull_request webhook delivery with action synchronize (a push to the pull request branch, force pushes included), passed through byte for byte. Emitted by webhook_events beside its webhook_events record, under operationId pr_sync_events. snake_case keys.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["action", "before", "after", "pull_request"],
+  "properties": {
+    "action": {"const": "synchronize"},
+    "before": {"type": "string", "description": "Head SHA before the push."},
+    "after": {"type": "string", "minLength": 1, "description": "Head SHA after the push."},
+    "pull_request": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["number", "base"],
+      "properties": {
+        "number": {"type": "integer"},
+        "base": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["repo"],
+          "properties": {
+            "repo": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["full_name"],
+              "properties": {"full_name": {"type": "string"}}
+            }
+          }
+        }
+      }
+    }
+  }
+}

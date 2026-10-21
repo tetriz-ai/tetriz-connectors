@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_repo_tree.schema.json",
+  "title": "gitlab fetch_repo_tree",
+  "description": "One project's file tree at the head of its default branch, as a RepoTreeRecord in protojson. The tree itself is a JSON blob in the blob store under treeS3Key.",
+  "allOf": [{"$ref": "../common/repo_tree_record.json"}],
+  "properties": {
+    "platformRepoId": {"pattern": "^[0-9]+$"},
+    "treeS3Key": {"pattern": "^repo-trees/[^/]+/gitlab/[0-9]+/[^/]+\\.json$"}
+  }
+}

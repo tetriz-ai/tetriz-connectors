@@ -1,0 +1,18 @@
+tetriz-connectors runs connector syncs against vendor APIs or the simulator.
+
+Usage:
+  tetriz-connectors <command> [flags]
+
+Commands:
+  serve        run the scheduler and worker, with /_health and /metrics
+  sync         run one operation for one organization now and print the result
+  config put   store an organization's connector config
+  cursor show  print the stored cursor of one operation
+  migrate      apply the connector store's migrations
+  simulator    serve the vendor simulator
+  connectors   list the connectors, their operations and default schedules
+  schema       list the record schemas, or print one as JSON Schema
+  version      print the version
+
+Configuration comes from TETRIZ_* environment variables. The repository's
+.env.example lists them.

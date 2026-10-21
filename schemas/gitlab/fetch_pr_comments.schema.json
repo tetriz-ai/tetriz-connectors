@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_pr_comments.schema.json",
+  "title": "gitlab fetch_pr_comments",
+  "description": "One non-system note on a merge request: the GitLab REST note object (GET /projects/:id/merge_requests/:iid/notes) passed through unchanged. Keys are snake_case.",
+  "$ref": "#/$defs/note",
+  "$defs": {
+    "user": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "username": {"type": "string"},
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "bot": {"type": "boolean"}
+      }
+    },
+    "note": {
+      "title": "REST note",
+      "type": "object",
+      "required": ["id", "body", "author", "created_at", "updated_at", "system"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "body": {"type": "string"},
+        "author": {"$ref": "#/$defs/user"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "system": {"const": false, "description": "System notes are dropped, so this is always false."},
+        "project_id": {"type": "integer"},
+        "noteable_type": {"type": "string"},
+        "noteable_iid": {"type": ["integer", "null"]},
+        "resolvable": {"type": "boolean"},
+        "resolved": {"type": "boolean"},
+        "type": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

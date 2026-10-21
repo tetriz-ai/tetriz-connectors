@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_repos.schema.json",
+  "title": "github fetch_repos",
+  "description": "One repository as a RepositoryRecord in protojson. vendorBlobJson is base64 of a flat JSON object of GitHub-only fields, not wrapped in a \"github\" key. protojson omits an empty string, so ownerLogin is absent when GitHub sends no owner login.",
+  "allOf": [{"$ref": "../common/repository_record.json"}],
+  "required": ["platformRepoId", "name", "fullName", "vendorBlobJson"],
+  "properties": {
+    "platformRepoId": {"pattern": "^[0-9]+$"},
+    "vendorBlobJson": {
+      "contentEncoding": "base64",
+      "contentMediaType": "application/json",
+      "contentSchema": {
+        "type": "object",
+        "required": ["node_id", "homepage", "allow_forking", "web_commit_signoff_required", "allow_squash_merge", "allow_merge_commit", "allow_rebase_merge"],
+        "additionalProperties": false,
+        "properties": {
+          "node_id": {"type": "string", "description": "GraphQL node id."},
+          "homepage": {"type": "string"},
+          "allow_forking": {"type": "boolean"},
+          "web_commit_signoff_required": {"type": "boolean"},
+          "allow_squash_merge": {"type": "boolean", "description": "False when the merge-method query failed."},
+          "allow_merge_commit": {"type": "boolean"},
+          "allow_rebase_merge": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

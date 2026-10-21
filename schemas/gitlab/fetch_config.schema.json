@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_config.schema.json",
+  "title": "gitlab fetch_config",
+  "description": "Merge and review settings. One ACCOUNT record for the group (metadata scope ACCOUNT) and one REPO record per discovered project (metadata scope REPO). The connector builds the outer object; the GitLab REST bodies inside it are passed through unchanged.",
+  "oneOf": [{"$ref": "#/$defs/account"}, {"$ref": "#/$defs/repo"}],
+  "$defs": {
+    "account": {
+      "title": "Group settings (scope ACCOUNT)",
+      "type": "object",
+      "required": ["group_settings"],
+      "additionalProperties": false,
+      "properties": {
+        "group_settings": {"type": "object", "additionalProperties": true, "description": "The GitLab REST group object (GET /groups/:id), unchanged."}
+      }
+    },
+    "repo": {
+      "title": "Project settings (scope REPO)",
+      "type": "object",
+      "required": ["repo_settings"],
+      "additionalProperties": false,
+      "properties": {
+        "repo_settings": {
+          "type": "object",
+          "required": ["default_branch", "merge_method", "squash_option", "only_allow_merge_if_pipeline_succeeds", "only_allow_merge_if_all_discussions_resolved", "remove_source_branch_after_merge"],
+          "additionalProperties": false,
+          "properties": {
+            "default_branch": {"type": "string"},
+            "merge_method": {"type": "string", "description": "merge, rebase_merge or ff; empty when GitLab sent none."},
+            "squash_option": {"type": "string", "description": "never, always, default_on or default_off; empty when GitLab sent none."},
+            "only_allow_merge_if_pipeline_succeeds": {"type": "boolean"},
+            "only_allow_merge_if_all_discussions_resolved": {"type": "boolean", "description": "GitLab's only_allow_merge_if_all_discussions_are_resolved, renamed."},
+            "remove_source_branch_after_merge": {"type": "boolean"}
+          }
+        },
+        "approvals": {"type": "object", "additionalProperties": true, "description": "The GitLab REST project approvals body (GET /projects/:id/approvals), unchanged. Omitted when the call failed."},
+        "protected_branches": {"type": "array", "items": {"type": "object", "additionalProperties": true}, "description": "The GitLab REST protected branch objects, unchanged. Omitted when the call failed or returned none."}
+      }
+    }
+  }
+}

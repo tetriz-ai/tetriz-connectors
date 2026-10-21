@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/jira/fetch_issues_data.schema.json",
+  "title": "jira fetch_issues_data",
+  "description": "A pointer to an issue description written to the blob store (internal/descriptions.IssueDescriptionPayload). The description itself is ADF JSON under s3_key. snake_case keys.",
+  "type": "object",
+  "required": ["s3_key", "issue_key", "platform_project_id"],
+  "additionalProperties": false,
+  "properties": {
+    "s3_key": {"type": "string", "pattern": "^descriptions/[^/]+/jira/issues/[0-9]+/[^/]+$", "description": "Blob store key: descriptions/<organization>/jira/issues/<project id>/<issue key>."},
+    "issue_key": {"type": "string", "minLength": 1},
+    "platform_project_id": {"type": "string", "pattern": "^[0-9]+$", "description": "Numeric Jira project id."}
+  }
+}

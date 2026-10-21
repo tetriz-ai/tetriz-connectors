@@ -1,0 +1,6 @@
+         repository          | merged
+-----------------------------+--------
+ demo-gh-startup/api-gateway |    238
+ demo-gh-startup/mobile      |     94
+ demo-gh-startup/web-app     |    440
+(3 rows)

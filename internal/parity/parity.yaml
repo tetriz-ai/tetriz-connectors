@@ -1,0 +1,71 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# Parity Manifest: the checked-in, machine-readable record of every deliberate
+# cross-vendor asymmetry, a genuine vendor limit with no clean fix, where the
+# asymmetry is correct and is recorded rather than mirrored. A check that
+# compares vendors treats a matching entry as an allowed exception; an
+# asymmetry not recorded here is a finding.
+#
+# Each entry:
+#   kind        — which check the entry answers to:
+#                   struct-field — a struct field absent on a sibling vendor's
+#                                  metrics or model struct.
+#                   dispatch     — an allowlist, switch or op-table arm absent
+#                                  for a vendor. Only a permanent limit belongs
+#                                  here.
+#                   behavioral   — a field or outcome present in the shared
+#                                  shape that a vendor never populates, or a
+#                                  logic limit; no static diff matches it.
+#   symbol      — the code symbol the asymmetry attaches to (a struct.field,
+#                 dispatch site or function name).
+#   absent_for  — the vendor(s) the symbol is legitimately absent or limited
+#                 for; each is one of github, gitlab, bitbucket.
+#   reason      — why it is a genuine limit, not an oversight (one sentence).
+#
+# Adding an entry is a reviewed act: it asserts "this asymmetry is correct."
+version: 1
+exceptions:
+  # Only true API-impossible limits are recorded here. A gap that could be
+  # built is not a limit.
+  - kind: behavioral
+    symbol: model.PullRequest.IsDraft
+    absent_for: [bitbucket]
+    reason: "Bitbucket Cloud has no draft-PR concept; is_draft is present on the shared model but Bitbucket never sets it true. True API limit — nothing to build."
+  - kind: behavioral
+    symbol: reviewerIsBot
+    absent_for: [bitbucket]
+    reason: "Bitbucket's user payload exposes no bot flag (unlike GitHub's type:Bot); bot detection is allowlist-heuristic on display_name. True API limit — no vendor bot signal exists."
+  - kind: struct-field
+    symbol: reviewerEntry.ViaTeam
+    absent_for: [gitlab, bitbucket]
+    reason: "GitHub's requested-reviewer team-expansion (a team requested as reviewer, expanded to its members) has no equivalent request-origin concept on GitLab (Approval Rules/Code Owners are a different feature, not a per-request team assignment) or Bitbucket (reviewers/participants are individual users only). A reviewer request on those vendors is always direct-to-user, so there is no 'via team' origin to record."
+  - kind: struct-field
+    symbol: reviewerEntry.ReviewerAccountID
+    absent_for: [github, gitlab]
+    reason: "GitHub login and GitLab username are unique per-org identifiers usable as a stable join key (confirmed against each vendor's official API docs), even though usernames can be renamed over time. Bitbucket's display_name is not unique across users at all, and Bitbucket Cloud's API no longer exposes a stable username field to fall back on, so account_id is Bitbucket's only reliable per-user join key. GitHub/GitLab have no equivalent gap to guard against."
+  - kind: struct-field
+    symbol: reviewerEntry.AICommentMarker
+    absent_for: [github, gitlab]
+    reason: "Only Bitbucket review rows lack a comment body, so an AI marker must come from fetch_pr_comments. GitHub and GitLab review rows already carry a real body (payload.body / notes content), so there is no comment-vs-review split to bridge for them."
+  # Branch-promotion detection priors. Recorded gaps for the merge-flow
+  # priors GitHub's branch listing cannot supply, and the Bitbucket-only
+  # branching-model prior. Detection fails open on every absent prior (merge history
+  # alone), so a gap is a missing sharpening signal, not a broken read.
+  - kind: behavioral
+    symbol: fetch_branches.vendor_updated_at
+    absent_for: [github]
+    reason: "GitHub's branch-listing response carries no head-commit date field; parity would need one refs GraphQL query per repo. GitLab (commit.committed_date) and Bitbucket (target.date) supply it inline, so recency priors exist there but not on GitHub — detection there works from merge history alone."
+  - kind: behavioral
+    symbol: fetch_branches.merged
+    absent_for: [github, bitbucket]
+    reason: "Only GitLab's branch-listing entry exposes a `merged` flag (branch head already merged into the default branch). GitHub's and Bitbucket's branch listings have no equivalent field, so the terminal-branch prior is absent for them — detection down-weights merged terminals only where the flag is available."
+  - kind: behavioral
+    symbol: fetch_branching_model
+    absent_for: [github, gitlab]
+    reason: "The declared development/production branching model is a Bitbucket-only API (GET /2.0/repositories/{ws}/{slug}/branching-model). GitHub and GitLab expose no equivalent declared-flow endpoint, so the declared-flow seed prior exists only for Bitbucket repos."
+  # Defect-lineage culprit evidence.
+  - kind: behavioral
+    symbol: lineage_blame.native_blame_evidence
+    absent_for: [bitbucket]
+    reason: "Bitbucket Cloud publishes no blame/annotate endpoint, so it never emits the BLAME_DIRECT / BLAME_AFTER_HOPS evidence the GitHub/GitLab blame walk produces. Bitbucket still reaches a culprit — it reconstructs one from file history plus per-commit diffs and records it as PATH_RECONSTRUCTION — so lineage parity holds; only the evidence mechanism differs, and permanently, because there is no blame endpoint to call."

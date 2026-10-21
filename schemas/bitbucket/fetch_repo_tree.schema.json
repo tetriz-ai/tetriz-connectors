@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_repo_tree.schema.json",
+  "title": "bitbucket fetch_repo_tree",
+  "description": "One tree capture as a RepoTreeRecord in protojson. Every record carries treeS3Key. A record with noChange true uploaded nothing; its treeS3Key names the tree an earlier run uploaded for the same treeSha, and it shares that record's ExternalID. Bitbucket never truncates, so treeTruncated is absent.",
+  "allOf": [{"$ref": "../common/repo_tree_record.json"}],
+  "required": ["treeS3Key"],
+  "properties": {"treeS3Key": {"pattern": "^repo-trees/"}}
+}

@@ -1,0 +1,161 @@
+{
+  "brand": "TETRIZ CONNECTORS",
+  "accent": "#226e68",
+  "scenes": [
+    {
+      "title": "Get engineering data into your own system",
+      "subtitle": "Sync vendor APIs without maintaining one ingestion script per tool.",
+      "label": "Connectors",
+      "metric": "9",
+      "unit": "vendor connectors",
+      "description": "This demo uses the bundled GitHub simulator. No real vendor account or token is involved.",
+      "panel_label": "Supported sources",
+      "rows": [
+        "VCS: GitHub \u00b7 GitLab \u00b7 Bitbucket",
+        "Work tracking: Jira \u00b7 Linear",
+        "AI usage: Cursor \u00b7 Claude Code \u00b7 Codex \u00b7 Kiro",
+        "Simulator covers GitHub, GitLab, Bitbucket and Jira."
+      ],
+      "evidence": [],
+      "footer": "Actual CLI and Postgres results \u00b7 bundled simulator \u00b7 illustrative rendering, not a shipped UI"
+    },
+    {
+      "title": "Run a pull-request sync",
+      "subtitle": "The real CLI fetches data and writes records to the Postgres sink.",
+      "label": "First sync",
+      "metric": "2,634",
+      "unit": "records emitted",
+      "description": "One GitHub operation reads three simulated repositories. These are event records, not a count of unique PRs.",
+      "panel_label": "Captured sync result",
+      "rows": [
+        "operation: github / fetch_prs",
+        "status: completed",
+        "records_emitted: 2634",
+        "repositories: api-gateway \u00b7 mobile \u00b7 web-app",
+        "Source: demo-gh-startup"
+      ],
+      "evidence": [
+        {
+          "file": "first.txt",
+          "excerpt": "\"records_emitted\": 2634"
+        },
+        {
+          "file": "first.txt",
+          "excerpt": "\"status\": \"completed\""
+        }
+      ],
+      "footer": "Actual CLI and Postgres results \u00b7 bundled simulator \u00b7 illustrative rendering, not a shipped UI"
+    },
+    {
+      "title": "Query the records that landed",
+      "subtitle": "Use the sink data to answer your own questions.",
+      "label": "Postgres result",
+      "metric": "772",
+      "unit": "merged-event rows across 3 repositories",
+      "description": "Group stored records by repository and select merged events. Vendor payloads retain their own shapes inside a common envelope.",
+      "panel_label": "Actual SQL result",
+      "rows": [
+        "api-gateway \u2014 238 merged events",
+        "mobile \u2014 94 merged events",
+        "web-app \u2014 440 merged events",
+        "3 repositories \u00b7 772 merged-event rows",
+        "connector_records \u00b7 event_type = merged"
+      ],
+      "evidence": [
+        {
+          "file": "records.txt",
+          "excerpt": "demo-gh-startup/api-gateway |    238"
+        },
+        {
+          "file": "records.txt",
+          "excerpt": "demo-gh-startup/mobile      |     94"
+        },
+        {
+          "file": "records.txt",
+          "excerpt": "demo-gh-startup/web-app     |    440"
+        }
+      ],
+      "footer": "Actual CLI and Postgres results \u00b7 bundled simulator \u00b7 illustrative rendering, not a shipped UI"
+    },
+    {
+      "title": "Progress survives the CLI process",
+      "subtitle": "Each sync saves a per-repository cursor in the store.",
+      "label": "Saved progress",
+      "metric": "3",
+      "unit": "repository checkpoints",
+      "description": "The first CLI process exits. The next process can read its stored progress without starting the history walk over.",
+      "panel_label": "Captured cursor",
+      "rows": [
+        "api-gateway \u2192 2026-10-15 18:48 UTC",
+        "mobile \u2192 2026-10-15 08:00 UTC",
+        "web-app \u2192 2026-10-15 21:30 UTC",
+        "Before the first PR sync: no cursor",
+        "After the sync: cursor data persisted"
+      ],
+      "evidence": [
+        {
+          "file": "cursor-before.txt",
+          "excerpt": "no cursor"
+        },
+        {
+          "file": "cursor-after.txt",
+          "excerpt": "\"ts\": \"2026-10-15T18:48:00Z\""
+        },
+        {
+          "file": "cursor-after.txt",
+          "excerpt": "\"ts\": \"2026-10-15T08:00:00Z\""
+        },
+        {
+          "file": "cursor-after.txt",
+          "excerpt": "\"ts\": \"2026-10-15T21:30:00Z\""
+        }
+      ],
+      "footer": "Actual CLI and Postgres results \u00b7 bundled simulator \u00b7 illustrative rendering, not a shipped UI"
+    },
+    {
+      "title": "The next sync resumes from that cursor",
+      "subtitle": "A second CLI process completes against the same simulator data.",
+      "label": "Resumed sync",
+      "metric": "2,634 \u2192 8",
+      "unit": "first run \u2192 resumed run",
+      "description": "The eight records are boundary replays. All eight already existed in the sink; the Postgres sink updates their existing rows.",
+      "panel_label": "Verified second run",
+      "rows": [
+        "status: completed",
+        "records_emitted: 8",
+        "same per-repository cursor as the first run",
+        "replayed_rows: 8",
+        "all_seen_before_second_sync: true"
+      ],
+      "evidence": [
+        {
+          "file": "second.txt",
+          "excerpt": "\"records_emitted\": 8"
+        },
+        {
+          "file": "replay.txt",
+          "excerpt": "8 | t"
+        }
+      ],
+      "footer": "Actual CLI and Postgres results \u00b7 bundled simulator \u00b7 illustrative rendering, not a shipped UI"
+    },
+    {
+      "title": "Choose where records go next",
+      "subtitle": "Run sync now, schedule it with serve, or embed the runner in Go.",
+      "label": "Your data",
+      "metric": "Your sink",
+      "unit": "JSON lines \u00b7 Postgres \u00b7 SQS",
+      "description": "This walkthrough used Postgres. Delivery can replay records, so consumers need to deduplicate when their sink does not do it for them.",
+      "panel_label": "What the repository provides",
+      "rows": [
+        "Configs, cursors and per-run status",
+        "Vendor-specific records in a shared envelope",
+        "JSON Schemas for record payloads",
+        "A scheduler and an embeddable runner",
+        "Your consumer derives metrics or displays a UI."
+      ],
+      "evidence": [],
+      "footer": "Actual CLI and Postgres results \u00b7 bundled simulator \u00b7 illustrative rendering, not a shipped UI"
+    }
+  ]
+}

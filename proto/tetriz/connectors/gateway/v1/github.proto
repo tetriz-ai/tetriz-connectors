@@ -1,0 +1,213 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// --- GraphQL ---
+
+message GitHubGraphQLRequest {
+  string query = 1;
+}
+
+message GitHubGraphQLResponse {
+  // Raw JSON of the "data" field from the GraphQL response.
+  bytes data = 1;
+  repeated GitHubGraphQLError errors = 2;
+}
+
+message GitHubGraphQLError {
+  string message = 1;
+  string type = 2;
+}
+
+// --- List Org Repos (REST) ---
+
+message ListOrgReposRequest {
+  string organization = 1;
+  int32 page = 2;
+  int32 per_page = 3;
+  // Repo type filter: "all", "public", "private", "forks", "sources", "member".
+  string type = 4;
+}
+
+message ListOrgReposResponse {
+  repeated bytes repos = 1;
+  bool has_next_page = 2;
+}
+
+// --- List User Repos (REST) ---
+
+// ListUserReposRequest fetches the authenticated user's own repositories via
+// GET /user/repos. Used for an individual (single-user) account where there is
+// no org to enumerate; the token's own repos are the catalog.
+message ListUserReposRequest {
+  // visibility filters by repo visibility: "all", "public", or "private".
+  // Empty means the vendor default ("all").
+  string visibility = 1;
+  // page is the 1-based page number to fetch.
+  int32 page = 2;
+  // per_page is the page size; GitHub clamps it to 100.
+  int32 per_page = 3;
+}
+
+// ListUserReposResponse carries the page of repos. GET /user/repos returns a
+// bare JSON array, so repos are the array elements verbatim.
+message ListUserReposResponse {
+  // repos holds each repository as its raw GitHub JSON object, not proto-encoded.
+  repeated bytes repos = 1;
+  // has_next_page is false on the last page and when the page is empty.
+  bool has_next_page = 2;
+}
+
+// --- List Installation Repos (REST) ---
+
+// ListInstallationReposRequest fetches repos accessible to the authenticated
+// GitHub App installation via GET /installation/repositories.
+message ListInstallationReposRequest {
+  // page is the 1-based page number to fetch.
+  int32 page = 1;
+  // per_page is the page size; GitHub clamps it to 100.
+  int32 per_page = 2;
+}
+
+// ListInstallationReposResponse carries the page of repos. Unlike /user/repos
+// and /orgs/{org}/repos (bare arrays), GET /installation/repositories wraps the
+// repos under a top-level "repositories" key alongside a "total_count" field;
+// the request parser unwraps that envelope before populating repos.
+message ListInstallationReposResponse {
+  // repos holds each repository as its raw GitHub JSON object, not proto-encoded.
+  repeated bytes repos = 1;
+  // has_next_page is false on the last page and when the page is empty.
+  bool has_next_page = 2;
+}
+
+// --- Get Authenticated User (REST) ---
+
+// GetAuthenticatedUserRequest resolves the credential's own identity via
+// GET /user. It carries no fields: the identity is fixed by the token the
+// gateway authenticates with. It pins the connector account (login + id)
+// for a single-user (PAT) tenant at connect time.
+message GetAuthenticatedUserRequest {}
+
+// GetAuthenticatedUserResponse carries the authenticated user the credential
+// resolved to. login + id identify the account; email and credential_expires_at
+// are best-effort and may be empty when GitHub omits them.
+message GetAuthenticatedUserResponse {
+  // login is the GitHub account handle (the "login" field of GET /user).
+  string login = 1;
+  // id is the stable numeric GitHub user id; survives login renames.
+  int64 id = 2;
+  // email is the account's public email; empty when private or unset.
+  string email = 3;
+  // credential_expires_at is the fine-grained PAT's expiry, parsed from the
+  // github-authentication-token-expiration response header. Nil when the header
+  // is absent (a non-expiring token or an App installation token) or when its
+  // value cannot be parsed.
+  google.protobuf.Timestamp credential_expires_at = 4;
+}
+
+// --- List PR Reviews (REST) ---
+
+message ListPRReviewsRequest {
+  string owner = 1;
+  string repo = 2;
+  int32 pr_number = 3;
+  int32 page = 4;
+  int32 per_page = 5;
+}
+
+message ListPRReviewsResponse {
+  repeated bytes reviews = 1;
+  bool has_next_page = 2;
+}
+
+// --- List PR Review Comments (REST) ---
+
+message ListPRCommentsRequest {
+  string owner = 1;
+  string repo = 2;
+  int32 pr_number = 3;
+  int32 page = 4;
+  int32 per_page = 5;
+}
+
+message ListPRCommentsResponse {
+  repeated bytes comments = 1;
+  bool has_next_page = 2;
+}
+
+// --- List PR Files (REST) ---
+
+message ListPRFilesRequest {
+  string owner = 1;
+  string repo = 2;
+  int32 pr_number = 3;
+  int32 page = 4;
+  int32 per_page = 5;
+}
+
+message ListPRFilesResponse {
+  repeated bytes files = 1;
+  bool has_next_page = 2;
+}
+
+// --- Copilot Metrics (REST) ---
+
+message CopilotMetricsRequest {
+  string organization = 1;
+}
+
+message CopilotMetricsResponse {
+  repeated bytes metrics = 1;
+}
+
+// --- Copilot User Usage (REST) ---
+
+message CopilotUserUsageRequest {
+  string organization = 1;
+}
+
+message CopilotUserUsageResponse {
+  repeated bytes user_metrics = 1;
+}
+
+// GetRepositoryRequest fetches a single repository's settings object
+// (GET /repos/{owner}/{repo}); used by fetch_config to read the default branch.
+message GetRepositoryRequest {
+  // owner is the org/user that owns the repo.
+  string owner = 1;
+  // repo is the repository name.
+  string repo = 2;
+}
+
+// GetRepositoryResponse carries the repository object verbatim.
+message GetRepositoryResponse {
+  // raw_json is the unmodified GET /repos/{owner}/{repo} response body.
+  bytes raw_json = 1;
+}
+
+// GetBranchRulesRequest fetches the effective (flattened) rules active on a
+// branch (GET /repos/{owner}/{repo}/rules/branches/{branch}); used by
+// fetch_config to read required-review counts and allowed merge methods, which
+// App tokens cannot read from the repo object. Folds in applicable org rulesets.
+message GetBranchRulesRequest {
+  // owner is the org/user that owns the repo.
+  string owner = 1;
+  // repo is the repository name.
+  string repo = 2;
+  // branch is the branch whose effective rules to fetch (typically the default).
+  string branch = 3;
+}
+
+// GetBranchRulesResponse carries the effective-rules array verbatim.
+message GetBranchRulesResponse {
+  // raw_json is the unmodified array of active rule objects.
+  bytes raw_json = 1;
+}
+

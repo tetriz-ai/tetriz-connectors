@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_issues_data.schema.json",
+  "title": "github fetch_issues_data",
+  "description": "A pointer to one issue body, which the connector writes to the blob store at s3_key. The shared internal/descriptions IssueDescriptionPayload, also used by Jira, so the repository id is named platform_project_id. snake_case keys. An issue with an empty body emits no record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["s3_key", "issue_key", "platform_project_id"],
+  "properties": {
+    "s3_key": {"type": "string", "pattern": "^descriptions/[^/]+/github/issues/[0-9]+/[0-9]+$", "description": "descriptions/{organizationId}/github/issues/{platform_repo_id}/{number}. The object is the raw Markdown body."},
+    "issue_key": {"type": "string", "pattern": "^[^/]+/[^#]+#[0-9]+$", "description": "owner/repo#number."},
+    "platform_project_id": {"type": "string", "pattern": "^[0-9]+$", "description": "The repository's numeric id."},
+    "repo_full_name": {"type": "string", "description": "Omitted when empty."}
+  }
+}

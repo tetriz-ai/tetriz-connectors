@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_reviews.schema.json",
+  "title": "gitlab fetch_reviews",
+  "description": "One review signal on a merge request. Two shapes share this operationId: a REST note passed through unchanged (metadata state COMMENTED) and an approval the connector builds (metadata review_type approval). webhook_events emits Note Hook notes under its own operationId.",
+  "oneOf": [{"$ref": "#/$defs/note"}, {"$ref": "#/$defs/approval"}],
+  "$defs": {
+    "user": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "username": {"type": "string"},
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "bot": {"type": "boolean"}
+      }
+    },
+    "note": {
+      "title": "REST note",
+      "type": "object",
+      "required": ["id", "body", "author", "created_at", "updated_at", "system"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "body": {"type": "string"},
+        "author": {"$ref": "#/$defs/user"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "system": {"const": false, "description": "System notes are dropped, so this is always false."},
+        "project_id": {"type": "integer"},
+        "noteable_type": {"type": "string"},
+        "noteable_iid": {"type": ["integer", "null"]},
+        "resolvable": {"type": "boolean"},
+        "resolved": {"type": "boolean"},
+        "type": {"type": ["string", "null"]}
+      }
+    },
+    "approval": {
+      "title": "Approval (built from GET /projects/:id/merge_requests/:iid/approvals)",
+      "type": "object",
+      "required": ["user", "state", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "user": {
+          "type": "object",
+          "required": ["id", "username", "bot"],
+          "additionalProperties": false,
+          "properties": {
+            "id": {"type": "integer"},
+            "username": {"type": "string"},
+            "bot": {"type": "boolean"}
+          }
+        },
+        "state": {"const": "APPROVED"},
+        "created_at": {"type": "string", "format": "date-time", "description": "RFC 3339 in UTC, second precision. 0001-01-01T00:00:00Z when GitLab sent no time."}
+      }
+    }
+  }
+}

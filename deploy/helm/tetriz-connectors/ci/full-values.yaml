@@ -1,0 +1,35 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# scripts/ci.sh only: turns on every optional object, so lint, template and kubeconform
+# cover them. Not a deployable configuration.
+replicaCount: 3
+config:
+  redisAddr: valkey.example.svc:6379
+  githubAppId: "12345"
+  oauthClientIds:
+    jira: jira-client-id
+    gitlab: gitlab-client-id
+secrets:
+  existingSecret: tetriz-secrets
+gateway:
+  config: |
+    SimulatorOrgIDs: []
+tenantKinds:
+  00000000-0000-4000-8000-000000000001: individual
+extraEnv:
+  - name: TETRIZ_SINK
+    value: "-"
+migrations:
+  initContainer: true
+serviceAccount:
+  create: true
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+podDisruptionBudget:
+  enabled: true
+simulator:
+  enabled: true
+  dsn: "host=postgres port=5432 user=sim dbname=sim sslmode=disable"

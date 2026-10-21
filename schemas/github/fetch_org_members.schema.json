@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_org_members.schema.json",
+  "title": "github fetch_org_members",
+  "description": "One organization member, built by the connector (OrgMemberRecord). snake_case keys. Empty email, name, avatar_url and teams are omitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["numeric_user_id", "login", "hint_source"],
+  "properties": {
+    "numeric_user_id": {"type": "integer", "description": "Stable GitHub user id. Also in the ExternalID."},
+    "login": {"type": "string"},
+    "email": {"type": "string", "description": "SAML nameId on the saml_scim path, the public profile email otherwise."},
+    "name": {"type": "string"},
+    "avatar_url": {"type": "string"},
+    "hint_source": {"enum": ["saml_scim", "org_members_api"]},
+    "teams": {"type": "array", "items": {"type": "string"}, "description": "Team slugs. Absent when team enrichment failed or the member is in no team."}
+  }
+}

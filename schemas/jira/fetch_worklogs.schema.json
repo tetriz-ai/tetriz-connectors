@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/jira/fetch_worklogs.schema.json",
+  "title": "jira fetch_worklogs",
+  "description": "One worklog, as the Jira REST API v3 issue worklog list returns it, byte for byte. camelCase keys.",
+  "type": "object",
+  "required": ["id"],
+  "additionalProperties": true,
+  "properties": {
+    "self": {"type": "string"},
+    "id": {"type": "string", "minLength": 1},
+    "issueId": {"type": "string"},
+    "author": {"$ref": "../common/jira.json#/$defs/user"},
+    "updateAuthor": {"$ref": "../common/jira.json#/$defs/user"},
+    "comment": {"$ref": "../common/jira.json#/$defs/adf"},
+    "created": {"$ref": "../common/jira.json#/$defs/time"},
+    "updated": {"$ref": "../common/jira.json#/$defs/time"},
+    "started": {"$ref": "../common/jira.json#/$defs/time"},
+    "timeSpent": {"type": "string", "description": "Human form, such as 3h 20m."},
+    "timeSpentSeconds": {"type": "integer", "minimum": 0}
+  }
+}

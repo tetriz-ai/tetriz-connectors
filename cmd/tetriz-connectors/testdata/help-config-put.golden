@@ -1,0 +1,15 @@
+usage: tetriz-connectors config put [flags]
+
+Store an organization's connector config. A write with --credentials resets the connector's health, so a paused connector runs again. A write without it keeps the stored credentials and health, and a write without --settings keeps the stored settings.
+
+Flags:
+  -connector string
+    	connector id, for example github (required)
+  -credentials string
+    	credentials JSON object; required on the first put, and kept from the stored config when omitted
+  -disabled
+    	store the config disabled
+  -org string
+    	organization id, a UUID (required)
+  -settings string
+    	settings JSON object; {} on the first put, and kept from the stored config when omitted

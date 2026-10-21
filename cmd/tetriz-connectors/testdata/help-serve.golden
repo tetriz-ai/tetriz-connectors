@@ -1,0 +1,3 @@
+usage: tetriz-connectors serve
+
+Run the scheduler and worker, with /_health and /metrics on TETRIZ_HTTP_ADDR. It needs TETRIZ_POSTGRES_DSN, TETRIZ_REDIS_ADDR and TETRIZ_CREDENTIALS_KEY. The repository's .env.example lists the rest.

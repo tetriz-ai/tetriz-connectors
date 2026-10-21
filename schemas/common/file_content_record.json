@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/common/file_content_record.json",
+  "title": "FileContentRecord (protojson)",
+  "description": "tetriz.connectors.workqueue.v1.FileContentRecord encoded with protojson.Marshal: lowerCamelCase keys, zero values omitted, int64 as a decimal string, enums as names. The host supplies the identity; the connector stages each file body in the blob store and fills the files' staging fields. A tombstone has isTombstone and no files.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repositoryId",
+    "sourcePath"
+  ],
+  "properties": {
+    "repositoryId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The host's repository id."
+    },
+    "ideType": {
+      "enum": [
+        "IDE_TYPE_UNSPECIFIED",
+        "IDE_TYPE_CLAUDE_CODE",
+        "IDE_TYPE_CURSOR",
+        "IDE_TYPE_COPILOT",
+        "IDE_TYPE_ANTIGRAVITY",
+        "IDE_TYPE_CODEX",
+        "IDE_TYPE_KIRO"
+      ]
+    },
+    "sourcePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifactType": {
+      "enum": [
+        "HARNESS_ARTIFACT_TYPE_UNSPECIFIED",
+        "HARNESS_ARTIFACT_TYPE_SKILL",
+        "HARNESS_ARTIFACT_TYPE_HOOK",
+        "HARNESS_ARTIFACT_TYPE_PLUGIN",
+        "HARNESS_ARTIFACT_TYPE_AGENT",
+        "HARNESS_ARTIFACT_TYPE_RULE",
+        "HARNESS_ARTIFACT_TYPE_CLAUDE_MD",
+        "HARNESS_ARTIFACT_TYPE_AGENTS_MD",
+        "HARNESS_ARTIFACT_TYPE_COMMAND",
+        "HARNESS_ARTIFACT_TYPE_PROMPT_TEMPLATE",
+        "HARNESS_ARTIFACT_TYPE_PERMISSIONS"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "ref": {
+      "type": "string",
+      "description": "The commit the files were fetched at."
+    },
+    "generation": {
+      "type": "string",
+      "pattern": "^-?[0-9]+$",
+      "description": "int64, so protojson writes it as a string."
+    },
+    "platformRepoId": {
+      "type": "string",
+      "description": "The vendor repository id."
+    },
+    "repoFullName": {
+      "type": "string"
+    },
+    "isTombstone": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "relativePath": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Hex sha256 of the staged body."
+          },
+          "s3Key": {
+            "type": "string",
+            "description": "Staging key under harness-staging/."
+          },
+          "blobSha": {
+            "type": "string"
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "originalBytes": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "description": "int64, so protojson writes it as a string."
+          }
+        }
+      }
+    },
+    "removedPaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

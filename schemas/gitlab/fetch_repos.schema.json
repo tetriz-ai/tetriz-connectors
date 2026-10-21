@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_repos.schema.json",
+  "title": "gitlab fetch_repos",
+  "description": "One project as a RepositoryRecord in protojson. vendorBlobJson is base64 of a flat JSON object of GitLab-only fields, not wrapped in a \"gitlab\" key. GitLab never sets sizeKb, disabled, isTemplate, licenseKey, hasPages, hasProjects, vendorUpdatedAt or the GitHub-only stats.",
+  "allOf": [
+    {
+      "$ref": "../common/repository_record.json"
+    }
+  ],
+  "required": [
+    "platformRepoId",
+    "name",
+    "fullName",
+    "vendorBlobJson"
+  ],
+  "properties": {
+    "platformRepoId": {
+      "pattern": "^[0-9]+$"
+    },
+    "vendorPushedAt": {
+      "description": "GitLab last_activity_at, which moves on any project activity, not only pushes."
+    },
+    "vendorBlobJson": {
+      "contentEncoding": "base64",
+      "contentMediaType": "application/json",
+      "contentSchema": {
+        "type": "object",
+        "required": [
+          "namespace_id",
+          "namespace_path",
+          "namespace_kind",
+          "import_status",
+          "empty_repo"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "namespace_id": {
+            "type": "integer",
+            "description": "0 when GitLab sent no namespace."
+          },
+          "namespace_path": {
+            "type": "string"
+          },
+          "namespace_kind": {
+            "type": "string",
+            "description": "group or user; empty when GitLab sent no namespace."
+          },
+          "import_status": {
+            "type": "string"
+          },
+          "empty_repo": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

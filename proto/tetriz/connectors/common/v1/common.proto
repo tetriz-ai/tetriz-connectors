@@ -1,0 +1,47 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+//go:generate go run github.com/tetriz-ai/tetriz-connectors/internal/tools/genenum -types=TenantType,IdeType,HarnessArtifactType
+syntax = "proto3";
+
+package tetriz.connectors.common.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/common/v1;commonv1";
+
+// TenantType is the host's intent for a tenant: a multi-user organization or
+// a single-user individual account. Connectors read it to pick org-wide or
+// user-scoped vendor endpoints.
+enum TenantType {
+  TENANT_TYPE_UNSPECIFIED = 0;
+  TENANT_TYPE_ORGANIZATION = 1;
+  TENANT_TYPE_INDIVIDUAL = 2;
+}
+
+// IdeType names an AI coding tool whose configuration files a repository may
+// carry.
+enum IdeType {
+  // IDE_TYPE_UNSPECIFIED means the producer did not report the tool.
+  IDE_TYPE_UNSPECIFIED = 0;
+  IDE_TYPE_CLAUDE_CODE = 1;
+  IDE_TYPE_CURSOR = 2;
+  IDE_TYPE_COPILOT = 3;
+  IDE_TYPE_ANTIGRAVITY = 4;
+  IDE_TYPE_CODEX = 5;
+  IDE_TYPE_KIRO = 6;
+}
+
+// HarnessArtifactType is the kind of AI-tool configuration file a repository
+// artifact holds (a skill, a hook, a rules file and so on).
+enum HarnessArtifactType {
+  HARNESS_ARTIFACT_TYPE_UNSPECIFIED = 0;
+  HARNESS_ARTIFACT_TYPE_SKILL = 1;
+  HARNESS_ARTIFACT_TYPE_HOOK = 2;
+  HARNESS_ARTIFACT_TYPE_PLUGIN = 3;
+  HARNESS_ARTIFACT_TYPE_AGENT = 4;
+  HARNESS_ARTIFACT_TYPE_RULE = 5;
+  HARNESS_ARTIFACT_TYPE_CLAUDE_MD = 6;
+  HARNESS_ARTIFACT_TYPE_AGENTS_MD = 7;
+  HARNESS_ARTIFACT_TYPE_COMMAND = 8;
+  HARNESS_ARTIFACT_TYPE_PROMPT_TEMPLATE = 9;
+  HARNESS_ARTIFACT_TYPE_PERMISSIONS = 10;
+}

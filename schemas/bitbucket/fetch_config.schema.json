@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_config.schema.json",
+  "title": "bitbucket fetch_config",
+  "description": "Per-repository merge settings and branch restrictions, built by the connector.",
+  "type": "object",
+  "required": ["repo_settings"],
+  "additionalProperties": false,
+  "properties": {
+    "repo_settings": {
+      "type": "object",
+      "required": ["default_branch"],
+      "additionalProperties": false,
+      "properties": {
+        "default_branch": {"type": "string", "description": "Main branch name; may be empty."},
+        "default_merge_strategy": {"type": "string", "description": "Absent when the branch call failed. May be empty."},
+        "merge_strategies": {"type": ["array", "null"], "items": {"type": "string"}, "description": "Absent when the branch call failed. null when Bitbucket sent none."}
+      }
+    },
+    "branch_restrictions": {
+      "type": "array",
+      "description": "Bitbucket branch-restriction objects, verbatim. Absent without repository:admin or when there are none.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {"type": "integer"},
+          "kind": {"type": "string"},
+          "branch_match_kind": {"type": "string"},
+          "branch_type": {"type": "string"},
+          "pattern": {"type": "string"},
+          "value": {"type": ["integer", "null"]},
+          "users": {"type": "array"},
+          "groups": {"type": "array"}
+        }
+      }
+    }
+  }
+}

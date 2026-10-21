@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/claude-code/fetch_analytics_user_cost.schema.json",
+  "title": "claude-code fetch_analytics_user_cost",
+  "description": "A JSON array of every cost row for one user, one daily bucket and one product, each row stored verbatim from GET /v1/organizations/analytics/user_cost_report. The connector checks actor.user_id and starting_at; the other properties are typed from the vendor's documentation.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "description": "One cost row. The vendor fans a bucket out by model, cost_type and token_type.",
+    "type": "object",
+    "required": ["actor", "starting_at"],
+    "properties": {
+      "actor": {
+        "description": "Who incurred the cost.",
+        "type": "object",
+        "required": ["user_id"],
+        "properties": {
+          "user_id": {"description": "Anthropic user id. Part of the ExternalID.", "type": "string", "minLength": 1},
+          "type": {"description": "Actor type, such as user_actor (vendor-documented).", "type": ["string", "null"]},
+          "email": {"description": "The user's email address (vendor-documented).", "type": ["string", "null"]},
+          "name": {"description": "The user's display name (vendor-documented).", "type": ["string", "null"]},
+          "deleted": {"description": "Whether the user has been deleted (vendor-documented).", "type": ["boolean", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "starting_at": {"description": "Bucket start, RFC 3339. Its UTC date is part of the ExternalID, and midnight UTC of that date is the DataDate.", "type": "string", "format": "date-time"},
+      "ending_at": {"description": "Bucket end, exclusive, RFC 3339 (vendor-documented).", "type": ["string", "null"]},
+      "product": {"description": "Product the cost belongs to, such as claude_code or chat. Part of the ExternalID; absent, null or empty groups under unknown.", "type": ["string", "null"]},
+      "model": {"description": "Model id or display name. Not part of the ExternalID (vendor-documented).", "type": ["string", "null"]},
+      "amount": {"description": "Net cost as a decimal string in fractional cents: \"41280.000000\" is $412.80. Parse it as a decimal, not a float (vendor-documented).", "type": ["string", "null"]},
+      "list_amount": {"description": "List-price cost, same encoding as amount (vendor-documented).", "type": ["string", "null"]},
+      "currency": {"description": "ISO currency code, such as USD (vendor-documented).", "type": ["string", "null"]},
+      "cost_type": {"description": "Kind of cost, such as tokens. Nullable (vendor-documented).", "type": ["string", "null"]},
+      "token_type": {"description": "Token class for a tokens cost, such as output_tokens. Nullable (vendor-documented).", "type": ["string", "null"]},
+      "context_window": {"description": "Context window tier (vendor-documented).", "type": ["string", "null"]},
+      "inference_geo": {"description": "Inference region (vendor-documented).", "type": ["string", "null"]},
+      "speed": {"description": "Speed tier (vendor-documented).", "type": ["string", "null"]},
+      "rbac_group_id": {"description": "Group id of the actor (vendor-documented).", "type": ["string", "null"]},
+      "slack_channel_id": {"description": "Slack channel for Claude-in-Slack cost, else null (vendor-documented).", "type": ["string", "null"]}
+    },
+    "additionalProperties": true
+  }
+}

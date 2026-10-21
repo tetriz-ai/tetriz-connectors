@@ -1,0 +1,182 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Requests to the Claude Enterprise Analytics API. Five endpoints in three
+// pagination shapes, all GET.
+//
+// Four are the analytics family. The fifth, the member roster, sits outside it: it
+// is what gives an activity count a denominator. One key serves all five, carrying
+// read:analytics and read:members together — an administrator is asked for one key
+// with both scopes rather than two keys.
+//
+// Every response carries its vendor objects as bytes rather than parsed fields.
+// That is a requirement here rather than the usual convention: currency amounts
+// arrive as decimal strings in fractional cents, where "41280.000000" means
+// $412.80, and parsing eagerly into a binary float loses precision on figures
+// that can run to millions. Several metric fields are also nullable in a way that
+// separates "zero" from "not applicable", which a parser flattening to zero
+// erases.
+//
+// Requests carry only the parameters an operation varies. The parameters that
+// must not vary — the report pair's bucket width and grouping, the skills
+// endpoint's user grouping — are fixed by the request builder instead, because a
+// pagination cursor is bound to the exact query that issued it: changing any
+// parameter mid-sequence returns 400. A field a caller could set differently
+// between pages would make that failure reachable.
+
+// --- /v1/organizations/analytics/users ---
+
+// AnthropicAnalyticsUsersRequest asks for one calendar day of per-user activity.
+message AnthropicAnalyticsUsersRequest {
+  // date is the day to read, YYYY-MM-DD. The vendor rejects dates before
+  // 2026-01-01, and rejects a day it has not yet aggregated with a 400 naming
+  // the most recent day available.
+  string date = 1;
+  // limit accepts 1..1000. Zero is sent as absent, which the vendor reads as 100.
+  int32 limit = 2;
+  // page is the opaque cursor from a previous response's next_page. Empty asks
+  // for the first page.
+  string page = 3;
+}
+
+// AnthropicAnalyticsUsersResponse carries a day's per-user activity rows.
+message AnthropicAnalyticsUsersResponse {
+  // Raw vendor objects, one per element.
+  repeated bytes data = 1;
+  // next_page is the cursor for the following page. This endpoint has no
+  // has_more field, so an empty next_page is the only end-of-pagination signal.
+  string next_page = 2;
+}
+
+// --- /v1/organizations/analytics/skills ---
+
+// AnthropicAnalyticsSkillsRequest asks for one calendar day of skill usage,
+// grouped per user by the request builder so a skill-grained response becomes
+// user-and-skill-grained and the per-user invariant survives.
+message AnthropicAnalyticsSkillsRequest {
+  // date is the day to read, YYYY-MM-DD. Same availability rules as the users
+  // endpoint.
+  string date = 1;
+  // limit accepts 1..1000. Zero is sent as absent.
+  int32 limit = 2;
+  // page is the opaque cursor from a previous response's next_page.
+  string page = 3;
+}
+
+// AnthropicAnalyticsSkillsResponse carries a day's skill rows.
+message AnthropicAnalyticsSkillsResponse {
+  // Raw vendor objects, one per element.
+  repeated bytes data = 1;
+  // next_page is the cursor for the following page; empty ends pagination. Like
+  // the users endpoint, there is no has_more.
+  string next_page = 2;
+}
+
+// --- /v1/organizations/analytics/user_cost_report ---
+
+// AnthropicAnalyticsUserCostReportRequest asks for per-user cost over a window.
+//
+// Its fields match the usage-report request exactly, and the two are deliberately
+// separate messages rather than one carrying a discriminator: cost and usage are two
+// endpoints, and one message per endpoint keeps that distinction where the compiler
+// can see it instead of admitting an unspecified value at runtime.
+message AnthropicAnalyticsUserCostReportRequest {
+  // starting_at is the window start. Required. The vendor rejects a start earlier
+  // than 2026-01-01T00:00:00Z or more than 365 days ago, and renders it as
+  // timezone-aware RFC 3339 on the wire.
+  google.protobuf.Timestamp starting_at = 1;
+  // ending_at is the window end, exclusive. Unset is sent as absent, which asks the
+  // vendor for its own default window; the vendor caps a window at 31 days, so a
+  // caller reading a longer period issues several requests.
+  google.protobuf.Timestamp ending_at = 2;
+  // limit accepts 1..1000. Zero is sent as absent, which the vendor reads as 20.
+  int32 limit = 3;
+  // page is the opaque cursor from a previous response's next_page.
+  string page = 4;
+}
+
+// AnthropicAnalyticsUserCostReportResponse carries per-user cost rows.
+message AnthropicAnalyticsUserCostReportResponse {
+  // Raw vendor objects, one per element. Row count can exceed the requested
+  // limit: cost_type and token_type fan-out rows do not count toward it.
+  repeated bytes data = 1;
+  // next_page is the cursor for the following page.
+  string next_page = 2;
+  // has_more says whether another page exists. Present on this shape, unlike the
+  // activity endpoints.
+  bool has_more = 3;
+  // data_refreshed_at is the vendor's own statement of how current these figures
+  // are. It bounds a re-read: there is nothing to gain from re-reading a window the
+  // vendor has not refreshed since it was last stored. Unset when the vendor omits
+  // it or sends a value that is not a timestamp — which leaves a re-read unbounded
+  // rather than skipping one, the safe direction of that failure.
+  google.protobuf.Timestamp data_refreshed_at = 4;
+  // organization_id identifies the organisation the key resolved to.
+  string organization_id = 5;
+}
+
+// --- /v1/organizations/analytics/user_usage_report ---
+
+// AnthropicAnalyticsUserUsageReportRequest asks for per-user token usage over a
+// window. Field-for-field the cost request; see that message for why they are
+// separate types.
+message AnthropicAnalyticsUserUsageReportRequest {
+  // starting_at is the window start. Required.
+  google.protobuf.Timestamp starting_at = 1;
+  // ending_at is the window end, exclusive. Unset is sent as absent. Windows are
+  // capped at 31 days.
+  google.protobuf.Timestamp ending_at = 2;
+  // limit accepts 1..1000. Zero is sent as absent, read by the vendor as 20.
+  int32 limit = 3;
+  // page is the opaque cursor from a previous response's next_page.
+  string page = 4;
+}
+
+// AnthropicAnalyticsUserUsageReportResponse carries per-user token rows.
+message AnthropicAnalyticsUserUsageReportResponse {
+  // Raw vendor objects, one per element.
+  repeated bytes data = 1;
+  // next_page is the cursor for the following page.
+  string next_page = 2;
+  // has_more says whether another page exists.
+  bool has_more = 3;
+  // data_refreshed_at bounds a re-read; see the cost response.
+  google.protobuf.Timestamp data_refreshed_at = 4;
+  // organization_id identifies the organisation the key resolved to.
+  string organization_id = 5;
+}
+
+// --- /v1/organizations/users ---
+
+// AnthropicOrganizationMembersRequest asks for a page of the organisation's
+// member roster. This is the one operation outside the analytics family, and the one
+// that read:members reaches rather than read:analytics.
+message AnthropicOrganizationMembersRequest {
+  // after_id is the id to resume after — a third pagination shape, neither an
+  // opaque cursor nor a page number. Empty asks for the first page.
+  string after_id = 1;
+  // limit accepts up to 1000. Zero is sent as absent.
+  int32 limit = 2;
+}
+
+// AnthropicOrganizationMembersResponse carries a page of the member roster. An
+// empty data is valid for an organisation with no members, not an error.
+message AnthropicOrganizationMembersResponse {
+  // Raw vendor member objects, one per element.
+  repeated bytes data = 1;
+  // first_id is the id of the page's first member.
+  string first_id = 2;
+  // last_id is the id of the page's last member, and what a following request
+  // passes as after_id.
+  string last_id = 3;
+  // has_more says whether another page exists.
+  bool has_more = 4;
+}

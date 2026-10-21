@@ -1,0 +1,31 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# A self-contained demo: the runner plus the vendor simulator, syncing the
+# demo organization 00000000-0000-4000-8000-00000000d3e0 with no vendor account.
+#
+#   helm install tetriz deploy/helm/tetriz-connectors -f deploy/helm/tetriz-connectors/values-demo.yaml
+#
+# It needs a Postgres and a Redis or Valkey you provide. The hosts below are
+# Services named postgres and valkey in the release's namespace; change them
+# to yours. The password is a demo value; never reuse it.
+
+replicaCount: 1
+
+config:
+  redisAddr: valkey:6379
+  # Records go to a JSON-lines file on the pod's data volume.
+  sink: /data/records.jsonl
+  env: development
+  # !!! DEMO ONLY !!! Connector credentials are stored UNENCRYPTED in Postgres.
+  # Never use this with real credentials. For anything else, remove this line
+  # and set secrets.credentialsKey (openssl rand -base64 32).
+  allowPlaintextCredentials: true
+
+secrets:
+  postgresDsn: "host=postgres port=5432 user=tetriz password=tetriz-demo-only dbname=tetriz sslmode=disable"
+
+# The simulator shares the runner's database. The chart writes the demo
+# gateway config (deploy/gateway.demo.yaml) pointing at the simulator Service.
+simulator:
+  enabled: true

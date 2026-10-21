@@ -1,0 +1,3 @@
+usage: tetriz-connectors schema [<connector> <operation>]
+
+With no arguments, list every connector and operation that has a record schema. With a connector and an operation, print that operation's record schema (JSON Schema).

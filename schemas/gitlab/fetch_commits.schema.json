@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_commits.schema.json",
+  "title": "gitlab fetch_commits",
+  "description": "One commit on a tracked ref: the GitLab REST commit detail (GET /projects/:id/repository/commits/:sha), with stats; when the detail fetch fails with a non-retryable error, the list entry without stats. webhook_events emits Push Hook commits under its own operationId.",
+  "$ref": "#/$defs/restCommit",
+  "$defs": {
+    "restCommit": {
+      "title": "REST commit",
+      "type": "object",
+      "required": ["id", "committed_date"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[0-9a-f]{40,64}$", "description": "Full commit SHA."},
+        "short_id": {"type": "string"},
+        "title": {"type": "string"},
+        "message": {"type": "string"},
+        "author_name": {"type": "string"},
+        "author_email": {"type": "string"},
+        "authored_date": {"type": "string", "format": "date-time"},
+        "committer_name": {"type": "string"},
+        "committer_email": {"type": "string"},
+        "committed_date": {"type": "string", "format": "date-time"},
+        "parent_ids": {"type": "array", "items": {"type": "string"}},
+        "project_id": {"type": "integer"},
+        "web_url": {"type": "string"},
+        "stats": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "additions": {"type": "integer"},
+            "deletions": {"type": "integer"},
+            "total": {"type": "integer"}
+          }
+        }
+      }
+    }
+  }
+}

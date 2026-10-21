@@ -1,0 +1,159 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+//go:generate go run github.com/tetriz-ai/tetriz-connectors/internal/tools/genenum -types=RepositoryVisibility
+syntax = "proto3";
+
+package tetriz.connectors.connector.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/connector/v1;connectorpb";
+
+// RepositoryVisibility enumerates the access levels a vendor exposes per repo.
+// Enumerated values must use proto enums, not free-form strings.
+enum RepositoryVisibility {
+  // REPOSITORY_VISIBILITY_UNSPECIFIED means the vendor did not report a visibility — store as NULL.
+  REPOSITORY_VISIBILITY_UNSPECIFIED = 0;
+  // REPOSITORY_VISIBILITY_PUBLIC means the repo is world-readable on the open internet —
+  // anyone, including users outside the vendor org/workspace, can clone and read.
+  REPOSITORY_VISIBILITY_PUBLIC      = 1;
+  // REPOSITORY_VISIBILITY_PRIVATE means access is restricted to an explicit allow-list
+  // (named collaborators, team grants, or workspace members on Bitbucket). Other members
+  // of the same vendor org cannot see the repo by default.
+  REPOSITORY_VISIBILITY_PRIVATE     = 2;
+  // REPOSITORY_VISIBILITY_INTERNAL means the repo is restricted to *all* authenticated
+  // members of the owning vendor org/enterprise — a middle tier between PUBLIC and PRIVATE.
+  // Supported only on GitHub Enterprise Cloud (internal repos in an Enterprise account)
+  // and GitLab (visibility=internal). Bitbucket has no equivalent and never sets this.
+  REPOSITORY_VISIBILITY_INTERNAL    = 3;
+}
+
+// RepositoryRecord is the normalized payload emitted by fetch_repos op.
+// One per repo discovered in the vendor org/workspace/group.
+message RepositoryRecord {
+  // platform_repo_id is the stable vendor-side ID (numeric on GitHub/GitLab, UUID on Bitbucket).
+  string platform_repo_id = 1;
+  // name is the repo's short name (e.g. "widgets").
+  string name             = 2;
+  // full_name is "owner/name" (e.g. "acme/widgets").
+  string full_name        = 3;
+  // owner_login is the org or user that owns the repo.
+  string owner_login      = 4;
+  // description is the vendor-reported repo description; may be empty.
+  string description      = 5;
+
+  // default_branch is the repo's default branch (e.g. "main").
+  string default_branch        = 10;
+  // visibility is the access level reported by the vendor.
+  RepositoryVisibility visibility = 11;
+  // archived is true when the vendor flags the repo as archived/read-only.
+  bool   archived         = 12;
+  // disabled is true when the vendor flags the repo as disabled (GitHub-specific).
+  bool   disabled         = 13;
+  // is_fork is true when the repo was created as a fork of another repo.
+  bool   is_fork          = 14;
+  // parent_platform_repo_id is the platform_repo_id of the parent when is_fork is true; empty otherwise.
+  string parent_platform_repo_id = 15;
+  // is_template is true when the vendor marks the repo as a template.
+  bool   is_template      = 16;
+
+  // primary_language is the vendor-reported primary language (e.g. "Go"); may be empty.
+  string primary_language = 20;
+  // size_kb is the vendor-reported repository size in KB.
+  int64  size_kb          = 21;
+  // topics are vendor-side topic tags. Stored under metadata.display.topics.
+  repeated string topics  = 22;
+  // license_key is the SPDX-style license key (e.g. "mit"); empty when no license detected. Stored under metadata.display.
+  string license_key      = 23;
+  // has_issues mirrors the vendor's "issues enabled" flag. Stored under metadata.display.
+  bool   has_issues       = 24;
+  // has_wiki mirrors the vendor's "wiki enabled" flag. Stored under metadata.display.
+  bool   has_wiki         = 25;
+  // has_pages mirrors the vendor's "pages enabled" flag. Stored under metadata.display.
+  bool   has_pages        = 26;
+  // has_projects mirrors the vendor's "projects enabled" flag. Stored under metadata.display.
+  bool   has_projects     = 27;
+
+  // web_url is the human-facing repo URL. Stored under metadata.display.
+  string web_url          = 30;
+  // ssh_url is the SSH clone URL. Stored under metadata.display.
+  string ssh_url          = 31;
+  // http_clone_url is the HTTPS clone URL. Stored under metadata.display.
+  string http_clone_url   = 32;
+
+  // vendor_created_at is the repo creation timestamp reported by the vendor.
+  google.protobuf.Timestamp vendor_created_at = 40;
+  // vendor_updated_at is the most recent metadata-touched timestamp reported by the vendor.
+  google.protobuf.Timestamp vendor_updated_at = 41;
+  // vendor_pushed_at is the most recent push/commit timestamp reported by the vendor.
+  google.protobuf.Timestamp vendor_pushed_at  = 42;
+
+  // stats holds cross-vendor numeric stats (stars/forks/watchers/...). Stored under metadata.stats.
+  Stats stats = 50;
+
+  // vendor_blob_json is vendor-specific cold fields. Stored under metadata.vendor.{vendor_id}.
+  // Sender places vendor_id (e.g., "github") as the only top-level key.
+  bytes vendor_blob_json = 60; // raw JSON: cold vendor JSON
+
+  // tracked_branch is the resolved branch to use for commit/tree analytics for
+  // this repo. Set by each connector's fetch_repos op via resolveRepoBranch()
+  // (per-repo override wins; org-level tracked_branch is the fallback; empty
+  // string means use the repository's default_branch). A consumer can store it
+  // directly, with no separate call to resolve the branch.
+  string tracked_branch = 61;
+}
+
+// Stats holds cross-vendor numeric repo stats. All counters are int32 because
+// vendor values fit comfortably in that range; values exceeding MaxInt32 are
+// clamped at the connector boundary (see treewalker.SafeInt32).
+message Stats {
+  // stars is the count of users who starred the repo.
+  int32 stars         = 1;
+  // forks is the count of public forks.
+  int32 forks         = 2;
+  // watchers is the count of users watching for notifications (GitHub-specific).
+  int32 watchers      = 3;
+  // subscribers is the count of users subscribed to the repo's activity feed (GitHub-specific).
+  int32 subscribers   = 4;
+  // open_issues is the count of currently-open issues (including PRs on GitHub).
+  int32 open_issues   = 5;
+  // network_count is the count of repos in the fork network (GitHub-specific).
+  int32 network_count = 6;
+}
+
+// RepoTreeRecord is emitted by fetch_repo_tree after S3 upload.
+message RepoTreeRecord {
+  // platform_repo_id is the stable vendor-side ID for the repo whose tree was fetched.
+  string platform_repo_id = 1;
+  // tree_sha is the commit SHA at the tip of tree_branch when the tree was captured.
+  string tree_sha         = 2;
+  // tree_branch is the branch the tree snapshot was taken from (tracked_branch or default_branch).
+  string tree_branch      = 3;
+  // tree_s3_key is the S3 object key holding the JSON-encoded tree blob.
+  string tree_s3_key      = 4;
+  // tree_truncated is true when the vendor returned a partial tree (GitHub's 100k entry cap).
+  bool   tree_truncated   = 5;
+  // no_change is true when SHA matched last_known_tree_sha; no S3 upload happened.
+  bool   no_change        = 6;
+  // fetched_at is the wall-clock time at which the tree was captured.
+  google.protobuf.Timestamp fetched_at = 7;
+}
+
+// FetchRepoTreeJob is the input the scheduler hands to a connector for one repo.
+message FetchRepoTreeJob {
+  // organization_id is the org owning the repo (UUID, tenant scope).
+  string organization_id      = 1;
+  // connector_id is the connector handling the repo ("github", "gitlab", "bitbucket").
+  string connector_id         = 2;
+  // platform_repo_id is the stable vendor-side ID for the repo.
+  string platform_repo_id     = 3;
+  // tracked_branch is the resolved branch to fetch (tracked_branch if set, else default_branch).
+  string tracked_branch       = 4;
+  // last_known_tree_sha is the tree SHA captured last run; empty for first run. Enables SHA short-circuit.
+  string last_known_tree_sha  = 5;
+  // vendor_owner is the vendor org/user login (e.g. "octocat") for vendor API paths.
+  string vendor_owner         = 6;
+  // vendor_repo is the vendor repository slug (e.g. "hello-world") for vendor API paths.
+  string vendor_repo          = 7;
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_repo_tree.schema.json",
+  "title": "github fetch_repo_tree",
+  "description": "One repository tree capture as a RepoTreeRecord in protojson. The tree itself is a JSON blob in the blob store at treeS3Key. A noChange record repeats the treeS3Key of the tree written for the same SHA.",
+  "allOf": [{"$ref": "../common/repo_tree_record.json"}],
+  "properties": {
+    "platformRepoId": {"pattern": "^[0-9]+$"},
+    "treeSha": {"pattern": "^[0-9a-f]{40}$"},
+    "treeS3Key": {"pattern": "^repo-trees/[^/]+/github/[0-9]+/[0-9a-f]{40}\\.json$"}
+  }
+}

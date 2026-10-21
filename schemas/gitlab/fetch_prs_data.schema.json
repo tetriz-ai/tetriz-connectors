@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_prs_data.schema.json",
+  "title": "gitlab fetch_prs_data",
+  "description": "A pointer to one merge request's description, which the connector writes to the blob store. Built by the connector with encoding/json. A merge request with an empty description emits nothing.",
+  "type": "object",
+  "required": ["s3_key", "pr_number", "platform_repo_id", "repo_full_name"],
+  "additionalProperties": false,
+  "properties": {
+    "s3_key": {"type": "string", "pattern": "^descriptions/[^/]+/gitlab/pull_requests/[0-9]+/[0-9]+$", "description": "Blob store key of the description text."},
+    "pr_number": {"type": "integer", "description": "Merge request iid."},
+    "platform_repo_id": {"type": "string", "pattern": "^[0-9]+$", "description": "Project id, as a string."},
+    "repo_full_name": {"type": "string", "description": "group/project."}
+  }
+}

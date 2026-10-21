@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/claude-code/fetch_analytics_users.schema.json",
+  "title": "claude-code fetch_analytics_users",
+  "description": "One per-user activity row from GET /v1/organizations/analytics/users, stored verbatim as the vendor sent it. Only user.id is checked by the connector; the other properties are typed from the vendor's documentation.",
+  "type": "object",
+  "required": ["user"],
+  "properties": {
+    "user": {
+      "description": "The actor the row describes.",
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {"description": "Anthropic user id. Half of the ExternalID.", "type": "string", "minLength": 1},
+        "email_address": {"description": "The user's email address (vendor-documented).", "type": ["string", "null"]},
+        "type": {"description": "Actor type (vendor-documented).", "type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "last_activity_date": {"description": "Last day the user was active, YYYY-MM-DD (vendor-documented).", "type": ["string", "null"]},
+    "rbac_group_id": {"description": "Group id the user belongs to (vendor-documented).", "type": ["string", "null"]},
+    "rbac_group_name": {"description": "Group name. Renameable (vendor-documented).", "type": ["string", "null"]},
+    "claude_code_metrics": {
+      "description": "Claude Code activity for the day: core_metrics (commit_count, pull_request_count, distinct_session_count, lines_of_code) and tool_actions (accepted_count and rejected_count per tool). Vendor-documented, kept verbatim.",
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "chat_metrics": {"description": "Claude chat activity for the day (vendor-documented, kept verbatim).", "type": ["object", "null"], "additionalProperties": true},
+    "office_metrics": {"description": "Office add-in activity for the day, keyed by app (vendor-documented, kept verbatim).", "type": ["object", "null"], "additionalProperties": true},
+    "web_search_count": {"description": "Web searches the user ran that day (vendor-documented).", "type": ["integer", "null"]}
+  },
+  "additionalProperties": true
+}

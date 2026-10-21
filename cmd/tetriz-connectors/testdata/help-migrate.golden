@@ -1,0 +1,3 @@
+usage: tetriz-connectors migrate
+
+Apply the connector store's migrations to TETRIZ_POSTGRES_DSN.

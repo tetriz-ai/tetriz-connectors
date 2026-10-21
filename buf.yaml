@@ -1,0 +1,23 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+version: v2
+modules:
+  - path: proto
+deps:
+  - buf.build/bufbuild/protovalidate
+lint:
+  use:
+    - STANDARD
+  # The integrations service answers eight RPCs with google.protobuf.Empty.
+  # Giving each its own response message would change the generated Go
+  # signatures every host implements, so these two rules are waived for that
+  # file only.
+  ignore_only:
+    RPC_REQUEST_RESPONSE_UNIQUE:
+      - proto/tetriz/connectors/integrations/v1/integrations.proto
+    RPC_RESPONSE_STANDARD_NAME:
+      - proto/tetriz/connectors/integrations/v1/integrations.proto
+breaking:
+  use:
+    - FILE

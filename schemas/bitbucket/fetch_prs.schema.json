@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_prs.schema.json",
+  "title": "bitbucket fetch_prs",
+  "description": "One Bitbucket pull request object from the list endpoint (with participants and reviewers), verbatim, plus four integers the connector adds: additions, deletions, files_changed and reviews_requested. The same payload is emitted for every lifecycle record (opened, snapshot, merged, closed); metadata event_type tells them apart.",
+  "type": "object",
+  "required": ["id", "state", "files_changed", "reviews_requested"],
+  "additionalProperties": true,
+  "$defs": {
+    "user": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {"type": "string"},
+        "uuid": {"type": "string"},
+        "account_id": {"type": "string"},
+        "display_name": {"type": "string"},
+        "nickname": {"type": "string"}
+      }
+    },
+    "ref": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "branch": {"type": ["object", "null"], "properties": {"name": {"type": "string"}}},
+        "commit": {"type": ["object", "null"], "properties": {"hash": {"type": "string"}}},
+        "repository": {
+          "type": ["object", "null"],
+          "properties": {
+            "uuid": {"type": "string"},
+            "full_name": {"type": "string"},
+            "name": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "id": {"type": "integer", "minimum": 1, "description": "Pull request id, unique within the repository."},
+    "title": {"type": "string"},
+    "description": {"type": "string"},
+    "state": {"enum": ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"]},
+    "created_on": {"type": "string", "format": "date-time"},
+    "updated_on": {"type": "string", "format": "date-time"},
+    "author": {"$ref": "#/$defs/user"},
+    "source": {"$ref": "#/$defs/ref"},
+    "destination": {"$ref": "#/$defs/ref"},
+    "reviewers": {"type": "array", "items": {"$ref": "#/$defs/user"}},
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "user": {"$ref": "#/$defs/user"},
+          "role": {"type": "string"},
+          "approved": {"type": "boolean"},
+          "state": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "comment_count": {"type": "integer"},
+    "task_count": {"type": "integer"},
+    "close_source_branch": {"type": "boolean"},
+    "merge_commit": {"type": ["object", "null"]},
+    "closed_by": {"$ref": "#/$defs/user"},
+    "links": {"type": "object"},
+    "additions": {"type": "integer", "minimum": 0, "description": "Added by the connector: lines added across the diffstat. Absent when the diffstat call failed."},
+    "deletions": {"type": "integer", "minimum": 0, "description": "Added by the connector: lines removed across the diffstat. Absent when the diffstat call failed."},
+    "files_changed": {"type": "integer", "minimum": 0, "description": "Added by the connector: distinct file paths in the diffstat. A rename counts once, under its new path; a deletion under its old path."},
+    "reviews_requested": {"type": "integer", "minimum": 0, "description": "Added by the connector: reviewers, or participants with role REVIEWER when reviewers is empty."}
+  }
+}

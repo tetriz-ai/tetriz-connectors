@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/claude-code/fetch_organization_members.schema.json",
+  "title": "claude-code fetch_organization_members",
+  "description": "One organization member from GET /v1/organizations/users, stored verbatim as the vendor sent it. Only id is checked by the connector; the other properties are typed from the vendor's documentation.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {"description": "Anthropic user id. Half of the ExternalID.", "type": "string", "minLength": 1},
+    "email": {"description": "The member's email address (vendor-documented).", "type": ["string", "null"]},
+    "name": {"description": "The member's display name (vendor-documented).", "type": ["string", "null"]},
+    "role": {"description": "The member's role, such as admin, user or claude_code_user. The only licence signal the connector emits (vendor-documented).", "type": ["string", "null"]},
+    "added_at": {"description": "When the member joined, RFC 3339 (vendor-documented).", "type": ["string", "null"]},
+    "type": {"description": "Object type, user (vendor-documented).", "type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

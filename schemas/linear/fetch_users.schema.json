@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/linear/fetch_users.schema.json",
+  "title": "linear fetch_users",
+  "description": "One record per Linear workspace member, including disabled members. The payload is the connector's UserNode re-encoded, so every key is always present and nothing else is.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "displayName",
+    "email",
+    "active",
+    "admin",
+    "createdAt",
+    "updatedAt",
+    "archivedAt"
+  ],
+  "properties": {
+    "id": {
+      "description": "User id (UUID). Also the ExternalID.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Full name.",
+      "type": "string"
+    },
+    "displayName": {
+      "description": "Display name.",
+      "type": "string"
+    },
+    "email": {
+      "description": "Email address.",
+      "type": "string"
+    },
+    "active": {
+      "description": "False for a disabled member.",
+      "type": "boolean"
+    },
+    "admin": {
+      "description": "True for a workspace admin.",
+      "type": "boolean"
+    },
+    "createdAt": {
+      "description": "When the user was created. The Go zero time 0001-01-01T00:00:00Z when Linear returned none.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "description": "When the user last changed. Also the DataDate. The Go zero time 0001-01-01T00:00:00Z when Linear returned none.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "archivedAt": {
+      "description": "When the entity was archived, or null.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

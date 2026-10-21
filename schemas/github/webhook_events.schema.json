@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/webhook_events.schema.json",
+  "title": "github webhook_events",
+  "description": "One GitHub webhook delivery body, passed through byte for byte. snake_case keys. The shape depends on the X-GitHub-Event header, which the record keeps in metadata event_type: push, pull_request, pull_request_review, issues, issue_comment, create or delete. The connector rejects a body that is not a JSON object, so every record is one.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "action": {"type": "string"},
+    "sender": {"type": "object", "additionalProperties": true},
+    "repository": {"type": "object", "additionalProperties": true},
+    "organization": {"type": "object", "additionalProperties": true},
+    "installation": {"type": "object", "additionalProperties": true},
+    "pull_request": {"type": "object", "additionalProperties": true},
+    "issue": {"type": "object", "additionalProperties": true},
+    "review": {"type": "object", "additionalProperties": true},
+    "comment": {"type": "object", "additionalProperties": true},
+    "ref": {"type": "string"},
+    "before": {"type": "string"},
+    "after": {"type": "string"}
+  }
+}

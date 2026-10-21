@@ -1,0 +1,16 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+version: v2
+managed:
+  enabled: false
+# Plugins are pinned remote versions so every run of `buf generate` produces
+# the committed gen/ and internal/gen/ byte for byte; scripts/check-generated.sh regenerates and fails
+# on a diff. Each proto's go_package names its output directory.
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.36.11
+    out: .
+    opt: module=github.com/tetriz-ai/tetriz-connectors
+  - remote: buf.build/grpc/go:v1.6.1
+    out: .
+    opt: module=github.com/tetriz-ai/tetriz-connectors

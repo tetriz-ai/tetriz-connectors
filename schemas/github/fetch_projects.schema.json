@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_projects.schema.json",
+  "title": "github fetch_projects",
+  "description": "One organization ProjectV2: the GraphQL node from buildProjectsQuery, re-marshalled from the connector's struct. camelCase keys, all always written.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["number", "title", "shortDescription", "url", "closed", "createdAt"],
+  "properties": {
+    "number": {"type": "integer", "minimum": 1},
+    "title": {"type": "string", "minLength": 1},
+    "shortDescription": {"type": "string"},
+    "url": {"type": "string"},
+    "closed": {"type": "boolean"},
+    "createdAt": {"type": "string", "description": "RFC 3339 as GitHub sent it; passed through as a string."}
+  }
+}

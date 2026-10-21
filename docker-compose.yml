@@ -1,0 +1,81 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# Local stack: Postgres (connector store and simulator data), Valkey as the
+# Redis-protocol store (scheduler, rate limits, token cache), the vendor
+# simulator, and the runner.
+# The passwords here are local-only values; never reuse them anywhere else.
+# The simulator builds the image from this checkout, tagged
+# tetriz-connectors:local, and the runner, which starts after it, uses that
+# image, so the image builds once. To run a release instead, set
+# TETRIZ_IMAGE=ghcr.io/tetriz-ai/tetriz-connectors:<version> and pass
+# --no-build, so compose pulls that image.
+services:
+  postgres:
+    image: docker.io/library/postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_USER: tetriz
+      POSTGRES_PASSWORD: tetriz-local-only
+      POSTGRES_DB: tetriz
+    ports:
+      - "127.0.0.1:${TETRIZ_PG_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tetriz -d tetriz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    # Valkey (BSD-3-Clause) speaks the Redis protocol the scheduler and limiters use.
+    image: docker.io/valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    ports:
+      - "127.0.0.1:${TETRIZ_REDIS_PORT:-56379}:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  simulator:
+    build: .
+    image: ${TETRIZ_IMAGE:-tetriz-connectors:local}
+    command: ["simulator", "--seed", "--addr", ":8080"]
+    environment:
+      TETRIZ_SIMULATOR_DSN: "host=postgres port=5432 user=tetriz password=tetriz-local-only dbname=tetriz sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/_health"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  runner:
+    image: ${TETRIZ_IMAGE:-tetriz-connectors:local}
+    command: ["serve"]
+    environment:
+      TETRIZ_POSTGRES_DSN: "host=postgres port=5432 user=tetriz password=tetriz-local-only dbname=tetriz sslmode=disable"
+      TETRIZ_REDIS_ADDR: "redis:6379"
+      # Demo only: credentials are stored unencrypted. Never set this in a
+      # real deployment; set TETRIZ_CREDENTIALS_KEY instead.
+      TETRIZ_ALLOW_PLAINTEXT_CREDENTIALS: "1"
+      TETRIZ_SINK: "/data/records.jsonl"
+      TETRIZ_BLOB_DIR: "/data/blobs"
+      TETRIZ_GATEWAY_CONFIG: "/etc/tetriz/gateway.yaml"
+    volumes:
+      - ./deploy/gateway.demo.yaml:/etc/tetriz/gateway.yaml:ro
+    ports:
+      - "127.0.0.1:${TETRIZ_RUNNER_PORT:-9090}:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:9090/_health"]
+      interval: 2s
+      timeout: 3s
+      retries: 60

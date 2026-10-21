@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_file_content.schema.json",
+  "title": "github fetch_file_content",
+  "description": "One AI-tool harness artifact (a skill, rule, hook and so on) read from a GitHub repository, as a FileContentRecord in protojson. File bodies are in the blob store under files[].s3Key.",
+  "$ref": "../common/file_content_record.json"
+}

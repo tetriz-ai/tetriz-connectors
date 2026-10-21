@@ -1,0 +1,32 @@
+{{- /*
+Copyright 2026 Workloom Solutions Private Limited
+SPDX-License-Identifier: MIT
+*/ -}}
+tetriz-connectors {{ .Chart.AppVersion }} is running as {{ include "tetriz.fullname" . }} in {{ .Release.Namespace }}.
+
+Check health (prints "ok" once Postgres and Redis answer):
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "tetriz.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }} &
+  curl localhost:{{ .Values.service.port }}/_health
+
+Store a connector config and run one sync from a runner pod:
+
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "tetriz.fullname" . }} -- \
+    tetriz-connectors config put --org <ORG_UUID> --connector github \
+    --settings '{"include_private":true}' --credentials '{"personal_access_token":"<TOKEN>"}'
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "tetriz.fullname" . }} -- \
+    tetriz-connectors sync --org <ORG_UUID> --connector github --op fetch_repos
+{{- if .Values.simulator.enabled }}
+
+The simulator is on. Try the demo organization, which needs no vendor account:
+
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "tetriz.fullname" . }} -- \
+    tetriz-connectors config put --org 00000000-0000-4000-8000-00000000d3e0 --connector github \
+    --settings '{"organization":"demo-gh-startup"}' --credentials '{}'
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "tetriz.fullname" . }} -- \
+    tetriz-connectors sync --org 00000000-0000-4000-8000-00000000d3e0 --connector github --op fetch_repos
+{{- end }}
+{{- if .Values.config.allowPlaintextCredentials }}
+
+WARNING: config.allowPlaintextCredentials is true. Connector credentials are stored unencrypted.
+{{- end }}

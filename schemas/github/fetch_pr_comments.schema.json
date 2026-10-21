@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_pr_comments.schema.json",
+  "title": "github fetch_pr_comments",
+  "description": "One pull request review comment (an inline diff comment): the GitHub REST body from GET /repos/{owner}/{repo}/pulls/{number}/comments, passed through unchanged. snake_case keys. GitHub can add keys. Conversation comments on the pull request are not included.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["id", "user", "created_at"],
+  "properties": {
+    "id": {"type": "integer"},
+    "node_id": {"type": "string"},
+    "pull_request_review_id": {"type": ["integer", "null"]},
+    "in_reply_to_id": {"type": "integer"},
+    "user": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "description": "Null for a deleted account.",
+      "properties": {
+        "login": {"type": "string"},
+        "id": {"type": "integer"},
+        "type": {"type": "string", "description": "User, Bot, Organization or Mannequin."}
+      }
+    },
+    "body": {"type": "string"},
+    "path": {"type": "string"},
+    "diff_hunk": {"type": "string"},
+    "commit_id": {"type": "string"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "author_association": {"type": "string"},
+    "html_url": {"type": "string"}
+  }
+}

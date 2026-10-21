@@ -1,0 +1,27 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+version: 2
+project_name: tetriz-connectors
+builds:
+  - main: ./cmd/tetriz-connectors
+    binary: tetriz-connectors
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - NOTICE
+      - README.md
+      - third_party/**/*
+checksum:
+  name_template: checksums.txt
+changelog:
+  disable: true

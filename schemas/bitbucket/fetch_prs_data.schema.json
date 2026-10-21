@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_prs_data.schema.json",
+  "title": "bitbucket fetch_prs_data",
+  "description": "A pointer to one pull request description stored in the blob store. The description body itself is not in the record.",
+  "type": "object",
+  "required": ["s3_key", "pr_number", "platform_repo_id", "repo_full_name"],
+  "additionalProperties": false,
+  "properties": {
+    "s3_key": {"type": "string", "pattern": "^descriptions/[^/]+/bitbucket/pull_requests/", "description": "Blob store key: descriptions/{organizationId}/bitbucket/pull_requests/{platform_repo_id}/{pr_number}."},
+    "pr_number": {"type": "integer", "minimum": 1},
+    "platform_repo_id": {"type": "string", "minLength": 1, "description": "destination.repository.uuid of the pull request."},
+    "repo_full_name": {"type": "string", "minLength": 1}
+  }
+}

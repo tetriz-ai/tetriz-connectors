@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/codex/fetch_codex_usage.schema.json",
+  "title": "codex fetch_codex_usage",
+  "description": "One developer's Codex usage for one UTC day: the raw row from the Codex Enterprise Analytics usage endpoint, stored verbatim. OpenAI publishes no schema; the connector reads only user_id, bucket_start_time and actor.email.",
+  "type": "object",
+  "required": ["user_id"],
+  "properties": {
+    "user_id": {
+      "description": "The developer's OpenAI account id. Never empty and never contains \"|\"; the run fails otherwise.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^|]+$"
+    },
+    "bucket_start_time": {
+      "description": "Start of the day the vendor filed the row under, in Unix seconds. When present and non-zero it falls on the requested UTC day; the run fails otherwise.",
+      "type": "integer"
+    },
+    "actor": {
+      "description": "Who the row is for.",
+      "type": ["object", "null"],
+      "properties": {
+        "email": {
+          "description": "The developer's email, or null. Copied to metadata developer_email.",
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

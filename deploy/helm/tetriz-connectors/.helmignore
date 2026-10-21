@@ -1,0 +1,11 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# Files helm package leaves out of the chart archive.
+.DS_Store
+.git/
+*.swp
+*.bak
+*.tmp
+*.orig
+*~

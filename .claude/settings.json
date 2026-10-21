@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build ./...)",
+      "Bash(go vet ./...)",
+      "Bash(TETRIZ_REQUIRE_TEST_DB=1 go test -race -count=1 ./...)",
+      "Bash(golangci-lint run ./...)",
+      "Bash(scripts/check-generated.sh)",
+      "Bash(scripts/run-examples.sh)",
+      "Bash(go test ./cmd/tetriz-connectors/ -update)",
+      "Bash(./scripts/acceptance.sh)"
+    ]
+  }
+}

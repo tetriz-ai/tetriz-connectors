@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_branches.schema.json",
+  "title": "bitbucket fetch_branches",
+  "description": "One Bitbucket branch object from refs/branches, verbatim. The branching-model companion record that fetch_branches also emits carries operationId fetch_branching_model and has its own schema.",
+  "type": "object",
+  "required": ["name", "target"],
+  "additionalProperties": true,
+  "properties": {
+    "name": {"type": "string", "minLength": 1},
+    "type": {"type": "string"},
+    "target": {
+      "type": "object",
+      "required": ["hash"],
+      "additionalProperties": true,
+      "properties": {
+        "hash": {"type": "string", "description": "Head commit SHA."},
+        "date": {"type": "string", "format": "date-time", "description": "Head commit date. Absent in some listings."},
+        "message": {"type": "string"},
+        "author": {"type": ["object", "null"]}
+      }
+    },
+    "merge_strategies": {"type": "array", "items": {"type": "string"}},
+    "default_merge_strategy": {"type": "string"},
+    "links": {"type": "object"}
+  }
+}

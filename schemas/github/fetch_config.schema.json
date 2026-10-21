@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_config.schema.json",
+  "title": "github fetch_config",
+  "description": "Governance config of one repository, built by the connector. snake_case keys. branch_rules is the GitHub REST body of GET /repos/{owner}/{repo}/rules/branches/{default_branch}, passed through unchanged, and is absent when that call failed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["repo_settings"],
+  "properties": {
+    "repo_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_branch"],
+      "properties": {"default_branch": {"type": "string"}}
+    },
+    "branch_rules": {
+      "type": "array",
+      "description": "The effective rules on the default branch.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["type"],
+        "properties": {
+          "type": {"type": "string", "description": "For example pull_request, required_status_checks, non_fast_forward."},
+          "ruleset_source_type": {"type": "string"},
+          "ruleset_source": {"type": "string"},
+          "ruleset_id": {"type": "integer"},
+          "parameters": {"type": "object", "additionalProperties": true}
+        }
+      }
+    }
+  }
+}

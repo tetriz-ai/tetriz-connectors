@@ -1,0 +1,245 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# Default values for the tetriz-connectors chart.
+# The chart runs `tetriz-connectors serve`. It bundles no Postgres or Redis:
+# point config.redisAddr and the TETRIZ_POSTGRES_DSN secret at your own.
+
+image:
+  repository: ghcr.io/tetriz-ai/tetriz-connectors
+  # Empty means "v" + the chart's appVersion, the tag the release workflow pushes.
+  tag: ""
+  # A digest (sha256:...) pins the image and wins over tag.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Several replicas are safe. One replica holds the leader lock in Redis and
+# enqueues the schedules. Every replica runs the queued tasks.
+replicaCount: 2
+
+# Plain (non-secret) TETRIZ_* settings. .env.example describes each one.
+config:
+  # TETRIZ_REDIS_ADDR: host:port of Redis or Valkey. Required unless
+  # secrets.redisUrl is set or secrets.existingSecret holds TETRIZ_REDIS_URL.
+  # A password goes in secrets.redisPassword.
+  redisAddr: ""
+  # TETRIZ_NAMESPACE: prefixes the queue names, the leader lock and every
+  # other Redis key the runner writes, so several releases can share one
+  # Redis. Empty keeps the unprefixed names.
+  namespace: ""
+  # TETRIZ_SINK: "log", "-" for JSON lines on stdout, "postgres" for the
+  # connector_records table (in secrets.sinkPostgresDsn, or else the store's
+  # database), or a file path such as /data/records.jsonl. A file is per pod,
+  # and it lives on the data volume.
+  sink: log
+  # TETRIZ_BLOB_DIR: where large bodies (diffs, trees) go. Keep it under /data,
+  # because the root filesystem is read-only.
+  blobDir: /data/blobs
+  # TETRIZ_METRICS_PREFIX: prepended to every metric name.
+  metricsPrefix: tetriz_
+  # TETRIZ_CONCURRENCY: tasks one pod runs at once.
+  concurrency: 10
+  # TETRIZ_DEFAULT_TENANT_KIND: organization or individual.
+  defaultTenantKind: organization
+  # TETRIZ_ENV: "development" or "test" turns on debug logs.
+  env: production
+  # TETRIZ_ALLOW_PLAINTEXT_CREDENTIALS: true stores connector credentials
+  # unencrypted. Never set it outside a throwaway demo.
+  allowPlaintextCredentials: false
+  # TETRIZ_GITHUB_APP_ID: the GitHub App id. Its private key goes in secrets.
+  githubAppId: ""
+  # TETRIZ_<VENDOR>_OAUTH_CLIENT_ID for the vendors whose tokens refresh.
+  # The client secrets go in secrets.oauthClientSecrets.
+  oauthClientIds:
+    jira: ""
+    gitlab: ""
+    bitbucket: ""
+    linear: ""
+
+# The port serving /_health and /metrics (TETRIZ_HTTP_ADDR is ":<port>").
+httpPort: 9090
+
+# Secret TETRIZ_* settings. The pod loads every key of the Secret as an
+# environment variable, so each key is the variable's name.
+secrets:
+  # Name of a Secret you manage. When set, the chart creates none and ignores
+  # the values below. Its keys are variable names, for example
+  # TETRIZ_POSTGRES_DSN, TETRIZ_CREDENTIALS_KEY, TETRIZ_GITHUB_APP_PRIVATE_KEY,
+  # TETRIZ_REDIS_URL and TETRIZ_JIRA_OAUTH_CLIENT_SECRET.
+  existingSecret: ""
+  # TETRIZ_POSTGRES_DSN: libpq keyword or URL DSN. Required. Connect as the
+  # tables' owner, not a superuser or BYPASSRLS role, so row-level security holds.
+  postgresDsn: ""
+  # TETRIZ_CREDENTIALS_KEY: base64 of 32 random bytes (openssl rand -base64 32).
+  # Required unless config.allowPlaintextCredentials is true. Keep it stable:
+  # credentials stored under one key do not decrypt under another.
+  credentialsKey: ""
+  # TETRIZ_GITHUB_APP_PRIVATE_KEY: the GitHub App's PEM key, or base64 of it.
+  githubAppPrivateKey: ""
+  # TETRIZ_REDIS_URL: redis:// or rediss:// (TLS) URL with an optional user,
+  # password and database, for example rediss://user:pass@redis:6380/0. It
+  # replaces config.redisAddr and secrets.redisPassword.
+  redisUrl: ""
+  # TETRIZ_REDIS_PASSWORD: the password of config.redisAddr.
+  redisPassword: ""
+  # TETRIZ_SINK_POSTGRES_DSN: the database config.sink=postgres writes to.
+  # Empty means TETRIZ_POSTGRES_DSN.
+  sinkPostgresDsn: ""
+  # TETRIZ_<VENDOR>_OAUTH_CLIENT_SECRET for each vendor in config.oauthClientIds.
+  oauthClientSecrets:
+    jira: ""
+    gitlab: ""
+    bitbucket: ""
+    linear: ""
+
+# Vendor endpoints and rates. Unset, the runner uses its built-in
+# gateway/defaults.yaml. Set one of these to replace that file.
+gateway:
+  # The gateway YAML itself; the chart puts it in a ConfigMap.
+  config: ""
+  # Or the name of a ConfigMap you manage, holding the YAML under `key`.
+  existingConfigMap: ""
+  key: gateway.yaml
+  # Where it is mounted; TETRIZ_GATEWAY_CONFIG points here.
+  mountPath: /etc/tetriz/gateway.yaml
+
+# Per-organization tenant kinds, as organization id: kind. The chart writes
+# them to a file and sets TETRIZ_TENANT_KINDS_FILE.
+tenantKinds: {}
+#  00000000-0000-4000-8000-000000000001: individual
+
+# Extra environment variables, as a list of EnvVar objects.
+extraEnv: []
+#  - name: TETRIZ_SINK
+#    value: "-"
+
+# Extra envFrom sources (ConfigMaps or Secrets).
+extraEnvFrom: []
+#  - secretRef:
+#      name: my-extra-tetriz-settings
+
+# Migrations. `serve` applies the store's migrations at start, under a Postgres
+# advisory lock, so replicas that start together apply them in turn.
+migrations:
+  # Also run `tetriz-connectors migrate` in an init container, so a failed
+  # migration shows as an init failure rather than a crashing runner.
+  initContainer: false
+
+# The volume mounted at /data: the working directory, the blob directory and
+# a file sink. Any volume source works; an emptyDir is lost with the pod.
+data:
+  volume:
+    emptyDir:
+      sizeLimit: 1Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# /_health answers 200 only while Postgres and Redis respond.
+# The startup probe covers the migrations serve applies before it listens.
+startupProbe:
+  httpGet:
+    path: /_health
+    port: http
+  periodSeconds: 5
+  failureThreshold: 60
+livenessProbe:
+  httpGet:
+    path: /_health
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 5
+  # A minute of failures before a restart, so a short store outage does not
+  # restart every pod.
+  failureThreshold: 6
+readinessProbe:
+  httpGet:
+    path: /_health
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# On SIGTERM the worker drains running tasks for up to 30 seconds, then the
+# HTTP server stops within 10. Keep this above their sum.
+terminationGracePeriodSeconds: 60
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+priorityClassName: ""
+
+serviceAccount:
+  # Create a ServiceAccount for the pods. The runner calls no Kubernetes API.
+  create: false
+  # The ServiceAccount to use; empty means the generated name when create is
+  # true, or the namespace's default.
+  name: ""
+  annotations: {}
+  automountToken: false
+
+service:
+  type: ClusterIP
+  port: 9090
+  annotations: {}
+
+# A Prometheus Operator ServiceMonitor scraping /metrics.
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  # Extra labels, for example the one your Prometheus selects on.
+  labels: {}
+
+podDisruptionBudget:
+  enabled: false
+  # Set one of minAvailable or maxUnavailable.
+  minAvailable: ""
+  maxUnavailable: 1
+
+# The vendor simulator, for demos only. It serves fake GitHub, GitLab,
+# Bitbucket and Jira APIs, seeded with demo data.
+simulator:
+  enabled: false
+  # Seed the demo catalog at start.
+  seed: true
+  # TETRIZ_SIMULATOR_DSN: the simulator's own Postgres database. Empty means
+  # it reuses the runner's TETRIZ_POSTGRES_DSN secret key.
+  dsn: ""
+  # Wire the runner to it: when gateway.config and gateway.existingConfigMap
+  # are empty, the chart writes deploy/gateway.demo.yaml with the simulator's
+  # in-cluster URL, routing these organizations to the simulator.
+  routeOrgIDs:
+    - 00000000-0000-4000-8000-00000000d3e0
+  port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

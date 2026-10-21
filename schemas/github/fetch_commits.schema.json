@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/github/fetch_commits.schema.json",
+  "title": "github fetch_commits",
+  "description": "One commit: the GraphQL Commit node from the branch history query, re-marshalled from the connector's ghGQLCommitNode struct. camelCase keys. Every key is always written, an absent list is null, and an author with no GitHub account has user {\"login\":\"\",\"databaseId\":0}.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["oid", "authoredDate", "committedDate", "message", "additions", "deletions", "changedFilesIfAvailable", "author", "parents", "associatedPullRequests"],
+  "properties": {
+    "oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "authoredDate": {"type": "string", "format": "date-time"},
+    "committedDate": {"type": "string", "format": "date-time"},
+    "message": {"type": "string"},
+    "additions": {"type": "integer"},
+    "deletions": {"type": "integer"},
+    "changedFilesIfAvailable": {"type": "integer", "description": "0 when GitHub does not report it."},
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "email", "user"],
+      "properties": {
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "user": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["login", "databaseId"],
+          "properties": {
+            "login": {"type": "string"},
+            "databaseId": {"type": "integer"}
+          }
+        }
+      }
+    },
+    "parents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalCount"],
+      "properties": {"totalCount": {"type": "integer", "minimum": 0}}
+    },
+    "associatedPullRequests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["number"],
+            "properties": {"number": {"type": "integer"}}
+          }
+        }
+      }
+    }
+  }
+}

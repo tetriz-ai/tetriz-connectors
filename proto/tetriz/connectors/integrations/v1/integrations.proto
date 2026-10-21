@@ -1,0 +1,884 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.integrations.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/integrations/v1;connectorintegrationsv1";
+
+import "buf/validate/validate.proto";
+import "tetriz/connectors/common/v1/common.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// ─── Messages ───────────────────────────────────────────────
+
+message ConnectIntegrationRequest {
+  string connector_id = 1;
+  string org_id = 2;
+}
+
+message ConnectIntegrationResponse {
+  string redirect_url = 1;
+}
+
+message DisconnectIntegrationRequest {
+  string org_id = 1;
+  string connector_id = 2;
+}
+
+enum IntegrationStatus {
+  INTEGRATION_STATUS_UNSPECIFIED = 0;
+  INTEGRATION_STATUS_CONNECTED = 1;
+  INTEGRATION_STATUS_NOT_CONNECTED = 2;
+  // COMING_SOON marks tools whose connector code does not yet exist
+  // (the catalog ships them as placeholders).
+  INTEGRATION_STATUS_COMING_SOON = 3;
+  INTEGRATION_STATUS_SUSPENDED = 4;
+  // OPS_DISABLED marks tools that are built but have been turned off
+  // operationally for this env via the EnabledConnectors off switch.
+  // Distinct from COMING_SOON so a status override cannot accidentally
+  // resurface a temporarily-disabled but otherwise-live connector.
+  INTEGRATION_STATUS_OPS_DISABLED = 5;
+  // PENDING_REPO_SELECTION marks a connector whose credential is saved but
+  // whose connect flow has not been completed: the config is disabled with no
+  // repositories elected yet (the individual-accounts resume state). Distinct
+  // from SUSPENDED — a disabled config with repos already elected is a genuine
+  // suspension (expired/revoked auth), whereas an empty-repo disabled config is
+  // simply awaiting the repo-selection step, so a client can offer "Finish
+  // setup" rather than "Reconnect".
+  INTEGRATION_STATUS_PENDING_REPO_SELECTION = 6;
+}
+
+message Integration {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  IntegrationStatus status = 4;
+  string logo_url = 5;
+  string connected_by = 6;  // display name of the user who connected this integration (empty when not connected)
+  string parent_connector_id = 7;  // connector whose auth this integration reuses (e.g. "github" for github-issues)
+}
+
+message IntegrationCategory {
+  string id = 1;
+  string name = 2;
+  repeated Integration integrations = 3;
+}
+
+message GetIntegrationsRequest {
+  string org_id = 1;
+}
+
+message GetIntegrationsResponse {
+  reserved 2;
+  repeated IntegrationCategory categories = 1;
+}
+
+// Business-logic-only RPCs — auth already validated by the caller.
+
+// ValidateInstallationRequest carries the App-install callback params for the
+// resolve (no-save) step of the pin-before-save connect flow. The caller calls this
+// first, pins the resolved account as the individual tenant owner, and only then
+// calls SaveInstallation — so a different-owner install never persists a
+// credential.
+message ValidateInstallationRequest {
+  // installation_id is the GitHub App installation the callback reported.
+  string installation_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // org_id is the tenant the install is being bound to.
+  string org_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // state is the CSRF token GitHub echoes back from the install redirect. It is
+  // verified and consumed here (single-use), so SaveInstallation instead requires its validation_token receipt.
+  string state = 3 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // code is the OAuth user authorization code returned by the same GitHub App.
+  string code = 4 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+}
+
+// ValidateInstallationResponse surfaces the installing GitHub account and the
+// tenant kind so the caller can pin the individual tenant's owner before any
+// persist. Mirrors ValidateConnectorTokenResponse for the PAT path.
+message ValidateInstallationResponse {
+  // account_id is the installing account's stable numeric GitHub id (as a
+  // string), used as the platform_user_id for the owner pin.
+  string account_id = 1;
+  // account_login is the installing account's GitHub login, carried into the
+  // owner-pin metadata.
+  string account_login = 2;
+  // tenant_type is the kind of tenant the install would bind to. The caller pins an
+  // owner only for TENANT_TYPE_INDIVIDUAL; an organization install skips the pin.
+  tetriz.connectors.common.v1.TenantType tenant_type = 3;
+  // Single-use receipt, valid for five minutes; forward unchanged to save.
+  string validation_token = 4;
+}
+
+// SaveInstallationRequest persists the (already validated + owner-verified)
+// installation. Called by the caller only after ValidateInstallation resolved the
+// account and PinIndividualOwner confirmed it owns the tenant; the CSRF state was
+// already consumed by ValidateInstallation; its receipt is required here.
+message SaveInstallationRequest {
+  // installation_id is the GitHub App installation to persist (the same value
+  // ValidateInstallation resolved).
+  string installation_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // org_id is the tenant the install is bound to.
+  string org_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // expected_account_id is the account_id ValidateInstallation resolved and the
+  // caller pinned as the owner. For an INDIVIDUAL tenant the save handler re-resolves
+  // the installation and rejects BEFORE persisting if the re-resolved account
+  // differs (a torn-state guard: the installation's account changed between the
+  // two GitHub fetches). Empty disables the check (organizations have no single
+  // owner to guard).
+  string expected_account_id = 3;
+  // Required receipt from ValidateInstallation; consumed even when save fails.
+  string validation_token = 4 [(buf.validate.field).string = {len: 64}];
+}
+
+// SaveInstallationResponse is empty: the pre-persist torn-state guard lives in the
+// save handler (it compares the re-resolved account against the request's
+// expected_account_id), so the caller does not post-check a returned account.
+message SaveInstallationResponse {}
+
+message HandleWebhookRequest {
+  bytes body = 1;
+  string signature_header = 2;
+  string event_type = 3;
+}
+
+message ValidateAndSaveBitbucketConnectionRequest {
+  string org_id = 1;
+  string auth_code = 2;
+  string state = 3;
+}
+
+message ValidateAndSaveBitbucketConnectionResponse {
+  // Empty when single workspace (auto-selected and saved).
+  // Populated when multiple — caller must follow up with SelectBitbucketWorkspace.
+  string selection_key = 1;
+  repeated BitbucketWorkspace workspaces = 2;
+}
+
+message ValidateAndSaveSlackConnectionRequest {
+  string org_id = 1;
+  string code = 2;
+  string state = 3;
+}
+
+message ValidateAndSaveSlackConnectionResponse {
+  string message = 1;
+  // connector_id echoes back which Slack grant was saved (the data connector
+  // or the slack_comms connector), decoded from the CSRF state. The OAuth
+  // callback branches the post-connect redirect on it.
+  string connector_id = 2;
+}
+
+message BitbucketWorkspace {
+  string id = 1;    // workspace slug
+  string name = 2;  // display name
+}
+
+message GetBitbucketWorkspacesRequest {
+  string selection_key = 1;
+}
+
+message GetBitbucketWorkspacesResponse {
+  repeated BitbucketWorkspace workspaces = 1;
+}
+
+message SelectBitbucketWorkspaceRequest {
+  string org_id = 1;
+  string selection_key = 2;
+  string workspace_slug = 3;
+}
+
+// --- Jira OAuth setup ---
+
+message ValidateAndSaveJiraConnectionRequest {
+  string org_id = 1;
+  string auth_code = 2;
+  string state = 3;
+}
+
+message JiraCloudSite {
+  string id = 1;    // cloud site ID
+  string name = 2;  // display name
+  string url = 3;   // site URL
+}
+
+message ValidateAndSaveJiraConnectionResponse {
+  // Empty when single site (auto-selected and saved).
+  // Populated when multiple — caller must follow up with SelectJiraCloudSite.
+  string selection_key = 1;
+  repeated JiraCloudSite sites = 2;
+}
+
+message SelectJiraCloudSiteRequest {
+  string org_id = 1;
+  string selection_key = 2;
+  string cloud_id = 3;
+}
+
+// ─── GitLab OAuth setup ──────────────────────────────────────────────────────
+
+message ValidateAndSaveGitLabConnectionRequest {
+  string org_id    = 1;
+  string auth_code = 2;
+  string state     = 3;
+}
+
+message ValidateAndSaveGitLabConnectionResponse {
+  // Empty when single group (auto-selected and saved).
+  // Populated when multiple — caller must follow up with SelectGitLabGroup.
+  string             selection_key = 1;
+  repeated GitLabGroup groups      = 2;
+}
+
+// GitLabGroup is the group a GitLab connect flow offers for selection.
+message GitLabGroup {
+  int64  id        = 1; // immutable numeric ID — always use this for API calls
+  string path      = 2; // URL slug, e.g. "acme"
+  string full_path = 3; // full path including parent groups
+  string name      = 4; // display name
+}
+
+message GetGitLabGroupsRequest {
+  string selection_key = 1;
+}
+
+message GetGitLabGroupsResponse {
+  repeated GitLabGroup groups = 1;
+}
+
+message SelectGitLabGroupRequest {
+  string org_id       = 1;
+  string selection_key = 2;
+  int64  group_id     = 3;
+}
+
+// HandleGitLabWebhookRequest carries an inbound GitLab webhook payload to the
+// connector service. The token_header holds the raw X-Gitlab-Token value for
+// constant-time comparison against the stored webhook secret.
+message HandleGitLabWebhookRequest {
+  bytes  body         = 1;
+  string token_header = 2; // X-Gitlab-Token header value
+  string event_type   = 3; // X-Gitlab-Event header value
+  string event_uuid   = 4; // X-Gitlab-Event-UUID header value (deduplication key)
+}
+
+// ─── VCS Connector Settings ─────────────────────────────────────────────────
+
+message GetVCSSettingsRequest {
+  string org_id = 1;
+  string connector_id = 2; // "github", "gitlab", or "bitbucket"
+}
+
+message VCSSettings {
+  string tracked_branch = 1; // branch to track for metrics (empty = default branch)
+  map<string, string> repo_branch_overrides = 2; // repo full name → branch override
+
+  // file_exclude_patterns is admin-configurable globs (filepath.Match syntax,
+  // matched against both the full path and the basename) that the diff
+  // consumer's analysis skips on top of go-enry's built-in
+  // generated/vendor/doc detection. It hides org-specific generated
+  // artifacts go-enry doesn't catch (e.g. internal codegen output). Bounds
+  // guard against pathological lists being pushed by a caller.
+  repeated string file_exclude_patterns = 3 [
+    (buf.validate.field).repeated.max_items = 200,
+    (buf.validate.field).repeated.items.string = {min_len: 1, max_len: 256}
+  ];
+
+  // repo_file_exclude_overrides maps "owner/name" -> override list. When a
+  // repo has an override, it REPLACES file_exclude_patterns rather than
+  // merging — keeps mental model simple at the cost of no inheritance.
+  map<string, RepoFileExcludePatterns> repo_file_exclude_overrides = 4 [
+    (buf.validate.field).map.max_pairs = 500
+  ];
+
+  // track_all_branches, when true, counts PRs from EVERY branch of every repo
+  // instead of one tracked branch. It is
+  // the org-level fallback; repo_all_branches overrides it per repo.
+  // Resolution precedence (most specific wins): repo in repo_all_branches →
+  // all; repo in repo_branch_overrides → that branch; track_all_branches →
+  // all; tracked_branch → that branch; else the repo's default branch.
+  bool track_all_branches = 5;
+
+  // repo_all_branches lists repo full names ("owner/repo") that track ALL
+  // branches, winning over repo_branch_overrides and the org-level settings
+  // for those repos. It is for the PARTIAL case (some repos all-branches, the
+  // rest on a specific branch); an org that wants every repo on all branches
+  // sets track_all_branches instead — so this list need not scale to an org's
+  // full repo count. The 1000 cap bounds the blob a caller can push.
+  repeated string repo_all_branches = 6 [
+    (buf.validate.field).repeated.max_items = 1000,
+    (buf.validate.field).repeated.items.string = {min_len: 1, max_len: 512}
+  ];
+}
+
+message RepoFileExcludePatterns {
+  repeated string patterns = 1 [
+    (buf.validate.field).repeated.max_items = 200,
+    (buf.validate.field).repeated.items.string = {min_len: 1, max_len: 256}
+  ];
+}
+
+message GetVCSSettingsResponse {
+  VCSSettings settings = 1;
+}
+
+message UpdateVCSSettingsRequest {
+  string org_id = 1;
+  string connector_id = 2;
+  VCSSettings settings = 3;
+}
+
+message ListVCSReposRequest {
+  string org_id = 1;
+  string connector_id = 2;
+  // fresh, when true, bypasses the repo-listing cache and re-fetches live from
+  // the vendor.
+  bool fresh = 3;
+}
+
+message VCSRepo {
+  string full_name = 1;
+  string default_branch = 2;
+  string override_branch = 3;
+  bool private = 4;
+  // tracked is true when this repo is in the connection's currently-synced set,
+  // so an edit-repos picker pre-checks the actual tracked set rather than guessing
+  // from visibility. False for an as-yet-untracked repo discovered in the listing.
+  bool tracked = 5;
+}
+
+message ListVCSReposResponse {
+  repeated VCSRepo repos = 1;
+  // grant_status reports whether the connection's credential is fully granted
+  // or still awaiting the resource owner's approval — credential-agnostic
+  // (a fine-grained token, or a pending app installation, etc.).
+  ConnectorGrantStatus grant_status = 2;
+}
+
+// ─── Linear OAuth setup ──────────────────────────────────────────────────────
+
+// The connector service knows no plans; the caller enforces any repo limit.
+
+// ValidateAndSaveLinearConnectionRequest carries the OAuth callback params
+// from the Linear authorization redirect.
+message ValidateAndSaveLinearConnectionRequest {
+  // org_id is the organization this connection belongs to.
+  string org_id = 1;
+  // code is the OAuth authorization code returned by Linear in the callback.
+  string code   = 2;
+  // state is the CSRF state token to validate against the Redis entry stored
+  // at ConnectIntegration time.
+  string state  = 3;
+}
+
+// ValidateAndSaveLinearConnectionResponse is empty; the connection is saved on success.
+// Linear OAuth grants a single workspace per authorization, so no site selection is needed.
+message ValidateAndSaveLinearConnectionResponse {}
+
+// ─── Individual-account connect flow ───────────────────────
+
+// ConnectorGrantStatus reports how fully a connector credential is authorised.
+enum ConnectorGrantStatus {
+  // CONNECTOR_GRANT_STATUS_UNSPECIFIED means the server did not populate the
+  // status; treat as a programming error.
+  CONNECTOR_GRANT_STATUS_UNSPECIFIED = 0;
+  // CONNECTOR_GRANT_STATUS_GRANTED means the credential is fully authorised.
+  CONNECTOR_GRANT_STATUS_GRANTED = 1;
+  // CONNECTOR_GRANT_STATUS_PENDING_APPROVAL means the credential is awaiting the
+  // resource owner's approval before it can sync — credential-agnostic (a
+  // fine-grained token, or a pending app installation, etc.).
+  CONNECTOR_GRANT_STATUS_PENDING_APPROVAL = 2;
+}
+
+// ConnectorAccount is the vendor account a submitted credential resolves to.
+message ConnectorAccount {
+  // handle is the vendor-native account handle.
+  string handle = 1;
+  // account_id is the vendor-native stable account identifier.
+  string account_id = 2;
+  // credential_expires_at is when the credential expires; unset if non-expiring.
+  google.protobuf.Timestamp credential_expires_at = 3;
+}
+
+// ValidateConnectorTokenRequest carries a pasted credential for the resolve
+// (no-save) step of the PAT connect flow.
+message ValidateConnectorTokenRequest {
+  // org_id is the tenant the credential belongs to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // connector_id identifies which connector the token is for.
+  string connector_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // token is the pasted personal access token (write-only).
+  string token = 3 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+}
+
+// ValidateConnectorTokenResponse returns the account the token resolved to,
+// without persisting anything. The caller pins this account as the tenant owner
+// before calling SubmitConnectorToken to save the credential.
+message ValidateConnectorTokenResponse {
+  // account is the vendor account the submitted token authenticates as.
+  ConnectorAccount account = 1;
+  // tenant_type is the kind of tenant the credential would bind to. The caller pins
+  // an owner only for TENANT_TYPE_INDIVIDUAL; an organization skips the pin and
+  // saves on submit (enable-on-install). Mirrors ValidateInstallationResponse.
+  tetriz.connectors.common.v1.TenantType tenant_type = 2;
+}
+
+// SubmitConnectorTokenRequest carries a pasted credential for the save step of
+// the PAT connect flow. The caller calls this only after ValidateConnectorToken
+// resolved the account and PinIndividualOwner confirmed it owns the tenant.
+message SubmitConnectorTokenRequest {
+  // org_id is the tenant the credential belongs to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // connector_id identifies which connector the token is for.
+  string connector_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // token is the pasted personal access token (write-only).
+  string token = 3 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  // expected_account_id is the account_id ValidateConnectorToken resolved and the
+  // caller pinned as the owner. For an INDIVIDUAL tenant the save handler re-resolves
+  // the token and rejects BEFORE persisting if the re-resolved account differs (a
+  // torn-state guard: the token was swapped between the two resolves). Empty
+  // disables the check (organizations have no single owner to guard).
+  string expected_account_id = 4;
+}
+
+// SubmitConnectorTokenResponse returns the account the saved token resolved to.
+message SubmitConnectorTokenResponse {
+  // account is the vendor account the submitted token authenticates as.
+  ConnectorAccount account = 1;
+}
+
+// ValidateCursorTeamKeyRequest carries a pasted Cursor team key for the resolve
+// (no-save) step.
+//
+// Deliberately not the shared ValidateConnectorToken pair. That one answers with a
+// single ConnectorAccount, and Cursor has no team handle or identifier to put in
+// it — its members response carries only members. Reusing it would mean widening a
+// message GitHub's live connect flow depends on.
+message ValidateCursorTeamKeyRequest {
+  // org_id is the tenant the credential would belong to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // team_key is the pasted Cursor team key (write-only). Presented to the vendor as
+  // HTTP Basic with the key as username and an empty password.
+  string team_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+}
+
+// ValidateCursorTeamKeyResponse returns who the key resolved to, without
+// persisting anything.
+//
+// The member list is the whole point. Cursor issues no team identifier, so an
+// administrator who belongs to several teams and pastes the wrong team's valid key
+// passes every automated check. Recognising these addresses is the only available
+// control, which is why this response exists rather than a bare success.
+message ValidateCursorTeamKeyResponse {
+  // member_emails are the addresses the key resolved to, for the administrator to
+  // recognise. Ordered as the vendor returned them.
+  repeated string member_emails = 1;
+  // member_count is the number of members the key resolved to. Distinct from
+  // len(member_emails) because a member may carry no address, and a count that
+  // silently disagreed with the list would understate the team.
+  int32 member_count = 2;
+  // team_fingerprint identifies the roster above, so the save step can bind to the
+  // team the administrator actually saw. A count cannot do that — two different
+  // teams of equal size share one — and Cursor issues no team id, so this is derived
+  // from the member identities themselves. Opaque: compare it, never parse it.
+  string team_fingerprint = 3;
+}
+
+// SubmitCursorTeamKeyRequest carries the key again for the save step, after the
+// administrator confirmed the resolved team.
+//
+// The key is re-sent rather than parked server-side, following the pasted-credential
+// precedent: nothing is stored until the administrator confirms, so abandoning the
+// flow leaves nothing behind.
+message SubmitCursorTeamKeyRequest {
+  // org_id is the tenant the credential belongs to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // team_key is the pasted Cursor team key (write-only).
+  string team_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  // expected_team_fingerprint is the team_fingerprint the administrator confirmed.
+  // The save re-resolves the key and refuses unless the fingerprint still matches, so
+  // a key swapped between the two calls cannot be saved against a team the
+  // administrator never saw — including a different team of the same size. Required:
+  // an absent expectation would be a save nobody confirmed.
+  string expected_team_fingerprint = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+}
+
+// SubmitCursorTeamKeyResponse confirms the save. Empty: the connector is enabled
+// on success, so there is nothing further for the caller to act on.
+message SubmitCursorTeamKeyResponse {}
+
+// ValidateAnthropicAnalyticsKeyRequest carries a pasted Anthropic Analytics API key
+// for the resolve (no-save) step.
+//
+// Not the shared ValidateConnectorToken pair, for the same reason Cursor is not: that
+// one answers with a single ConnectorAccount, and this flow has to return a member
+// roster as well as an identifier.
+message ValidateAnthropicAnalyticsKeyRequest {
+  // org_id is the tenant the credential would belong to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // api_key is the pasted Anthropic Analytics API key (write-only), presented to the
+  // vendor in the x-api-key header. It must carry both read:analytics and
+  // read:members: the first reaches the analytics endpoints, the second the
+  // membership roster.
+  string api_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+}
+
+// ValidateAnthropicAnalyticsKeyResponse returns who the key resolved to, without
+// persisting anything.
+//
+// Two identities, because they answer different questions. anthropic_organization_id
+// is the machine-comparable one the save binds against. The member list is the one an
+// administrator can actually verify: an identifier is something they can only accept,
+// whereas their own colleagues' addresses are recognisable.
+message ValidateAnthropicAnalyticsKeyResponse {
+  // anthropic_organization_id is the Anthropic organisation the key belongs to. It is
+  // the value a subsequent save must match, so a key swapped between the two calls
+  // cannot be stored against an organisation the administrator never saw.
+  string anthropic_organization_id = 1;
+  // member_emails are the addresses the key resolved to, for the administrator to
+  // recognise. Ordered as the vendor returned them.
+  repeated string member_emails = 2;
+  // member_count is the number of members the key resolved to. Distinct from
+  // len(member_emails) because a member record may carry no address, and a count that
+  // silently disagreed with the list would understate the organisation.
+  int32 member_count = 3;
+}
+
+// SubmitAnthropicAnalyticsKeyRequest persists a key the administrator confirmed.
+//
+// The key is re-sent rather than parked server-side, following the pasted-credential
+// precedent: nothing is stored until the administrator confirms, so abandoning the
+// flow leaves nothing behind.
+message SubmitAnthropicAnalyticsKeyRequest {
+  // org_id is the tenant the credential belongs to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // api_key is the pasted Anthropic Analytics API key (write-only).
+  string api_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  // expected_anthropic_organization_id is the organisation the administrator
+  // confirmed. The save re-resolves the key and refuses unless it still matches, so a
+  // key swapped between the two calls cannot be saved against an organisation the
+  // administrator never saw. Required: an absent expectation would be a save nobody
+  // confirmed. Anthropic issues a real organisation identifier, so this binds on the
+  // vendor's own value rather than on a roster fingerprint derived from members.
+  string expected_anthropic_organization_id = 3 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+}
+
+// SubmitAnthropicAnalyticsKeyResponse confirms the save. Empty: the connector is
+// enabled on success, so there is nothing further for the caller to act on.
+message SubmitAnthropicAnalyticsKeyResponse {}
+
+// ValidateCodexAnalyticsKeyRequest carries a pasted Codex Analytics admin key and the
+// workspace it should answer for, for the resolve (no-save) step.
+//
+// Not the shared ValidateConnectorToken pair, for the reason both siblings give: that one
+// answers with a single ConnectorAccount, and this flow has to return a developer roster
+// as well as an identifier.
+//
+// It carries a workspace the sibling flows have no equivalent of, because the identifier
+// cannot be derived from the key: it is a path parameter on every request and an
+// administrator reads it off the ChatGPT admin console. One probe therefore proves the
+// key, its scope, and the workspace together.
+message ValidateCodexAnalyticsKeyRequest {
+  // org_id is the tenant the credential would belong to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // api_key is the pasted Codex Analytics admin key (write-only), presented to the vendor
+  // as an Authorization bearer token. It must carry codex.enterprise.analytics.read — the
+  // one scope the endpoint requires, and one this flow cannot widen after the fact.
+  string api_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  // workspace_id is the ChatGPT Enterprise workspace to read. Supplied rather than
+  // discovered, so a workspace the key cannot reach is refused on its own terms rather
+  // than as a rejected credential.
+  //
+  // A UUID, in the bare 36-character form. Constrained here so a wrong shape is refused at
+  // the boundary rather than by the vendor; why that shape and not a wider alphabet is on
+  // ValidWorkspaceID in connector/codex/config.go, which enforces the same rule on the
+  // paths this constraint does not reach.
+  string workspace_id = 3 [(buf.validate.field).string = {len: 36, pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"}];
+}
+
+// ValidateCodexAnalyticsKeyResponse returns what the key resolved to, without
+// persisting anything.
+//
+// The workspace identifier is echoed rather than discovered — the caller supplied it —
+// and it is the value a subsequent save binds against. The developer addresses are the
+// half an administrator can actually verify: an identifier they can only accept,
+// whereas their own colleagues' addresses are recognisable.
+message ValidateCodexAnalyticsKeyResponse {
+  // workspace_id is the workspace the probe answered for, echoed from the request. For
+  // display only — the save binds on the fingerprint below, not on this.
+  string workspace_id = 1;
+  // developer_emails are the distinct addresses the probe's window resolved to, for the
+  // administrator to recognise. Ordered as the vendor first returned them. Distinct,
+  // because the probe reads a usage window whose rows are one developer per day, so an
+  // active developer appears once per day they worked; the raw rows would show the same
+  // colleague repeatedly. Empty is an expected answer rather than an error: the address
+  // is nullable and a quiet window returns no rows at all.
+  repeated string developer_emails = 2;
+  // developer_count is the number of distinct developers the window resolved to.
+  // Distinct from len(developer_emails) because a row may carry no address, and a count
+  // derived from the list would understate the workspace.
+  int32 developer_count = 3;
+  // developers_truncated says the probe's page filled, so the list and count are a
+  // sample of the window rather than all of it. Without it the confirmation step cannot
+  // tell an administrator at a large workspace that they are being shown a few of their
+  // colleagues rather than all of them, and a count rendered flat would read as the
+  // workspace's size.
+  bool developers_truncated = 4;
+}
+
+// SubmitCodexAnalyticsKeyRequest persists a Codex Analytics admin key and workspace the
+// administrator confirmed.
+//
+// The key is re-sent rather than parked server-side, following the pasted-credential
+// precedent: nothing is stored until the administrator confirms, so abandoning the flow
+// leaves nothing behind.
+message SubmitCodexAnalyticsKeyRequest {
+  // org_id is the tenant the credential belongs to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // api_key is the pasted Codex Analytics admin key (write-only).
+  string api_key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  // workspace_id is the workspace to store against the credential. Same constraint as on
+  // the validate request, and for the same two onward lives.
+  //
+  // It carries no companion expectation field, unlike both sibling flows. Theirs bind the
+  // save to a value the vendor attests — Cursor a roster fingerprint, Anthropic the
+  // organisation id the key resolves to — and a Codex usage response carries no workspace
+  // at all, so any expectation would be caller-supplied and the save would be comparing
+  // two fields of one request. What the save does prove is narrower and worth stating: it
+  // re-probes, so the key still reads this workspace at the moment of storing. It does
+  // not prove this is the workspace the administrator was shown.
+  string workspace_id = 3 [(buf.validate.field).string = {len: 36, pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"}];
+}
+
+// SubmitCodexAnalyticsKeyResponse confirms the save. Empty: the connector is enabled
+// on success, so there is nothing further for the caller to act on.
+message SubmitCodexAnalyticsKeyResponse {}
+
+// ConfirmConnectorReposRequest confirms the repos to track and enables the
+// connector for the tenant. The caller enforces any repo limit first.
+message ConfirmConnectorReposRequest {
+  // org_id is the tenant being confirmed.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // connector_id identifies the connector being confirmed.
+  string connector_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // repo_full_names are the repositories the tenant elected to track. Capped
+  // (mirroring this file's other repo lists) so the picker cannot push a
+  // pathological list into the cap-check and vendor fan-out.
+  repeated string repo_full_names = 3 [
+    (buf.validate.field).repeated.max_items = 200,
+    (buf.validate.field).repeated.items.string = {min_len: 1, max_len: 256}
+  ];
+}
+
+// DisableConnectorConfigsForOrgRequest asks the connector service to disable
+// every enabled connector config owned by an org.
+message DisableConnectorConfigsForOrgRequest {
+  // org_id is the organization whose connector configs are disabled.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+}
+
+// DisableConnectorConfigsForOrgResponse reports how many configs were disabled.
+message DisableConnectorConfigsForOrgResponse {
+  // disabled_count is the number of enabled configs flipped to disabled; 0 when
+  // the org had none enabled (the idempotent re-run case).
+  int64 disabled_count = 1;
+}
+
+// ─── Service ────────────────────────────────────────────────
+
+// KiroBucketAccessState is how far validation got against the customer's bucket.
+//
+// It is a state rather than a boolean because the three outcomes need different words on
+// screen and different behaviour on save: a grant not yet added is the expected middle of
+// the dialogue, a bucket that lists but holds nothing cannot have its read grant proven at
+// all, and only the third has been proven end to end.
+enum KiroBucketAccessState {
+  // KIRO_BUCKET_ACCESS_STATE_UNSPECIFIED means no verdict was reached; treat as a failure.
+  KIRO_BUCKET_ACCESS_STATE_UNSPECIFIED = 0;
+  // NEEDS_GRANT means the bucket could not be listed. Expected before the administrator
+  // has added the policy, which is why it is a state and not an error: the same call
+  // returns the policy they still have to paste.
+  KIRO_BUCKET_ACCESS_STATE_NEEDS_GRANT = 1;
+  // PROVISIONAL means the bucket listed cleanly and holds nothing, so the read grant
+  // could not be exercised — every path to this state returns before the read probe,
+  // which needs an object to fetch. Refused at the point of saving rather than stored:
+  // that is the reporting-never-enabled case, and calling it verified would be false
+  // confidence.
+  KIRO_BUCKET_ACCESS_STATE_PROVISIONAL = 2;
+  // CONFIRMED means one object was listed and fetched, so both privileges are proven.
+  KIRO_BUCKET_ACCESS_STATE_CONFIRMED = 3;
+}
+
+// KiroBucketInventory is what the bucket was found to hold, for a confirmation screen.
+//
+// It carries two kinds of figure and keeps them apart, because they are not equally
+// trustworthy and a screen that blurred them would overstate what was checked.
+message KiroBucketInventory {
+  // first_day and last_day bound the reports present, as YYYY-MM-DD. EXACT: they come
+  // from a walk down the key hierarchy's boundary path rather than from a sample.
+  string first_day = 1;
+  // last_day is the most recent day holding reports. EXACT, from the same walk.
+  string last_day = 2;
+  // oldest_object_key is the key at that earliest day. EXACT, and the honest statement of
+  // collectable depth: history reaches back no further than the bucket does.
+  string oldest_object_key = 3;
+  // collectable_days is the span the two boundary days cover. EXACT.
+  int32 collectable_days = 4;
+  // recent_file_count and recent_client_types are OBSERVED over recent_window_days only,
+  // never over all history. A complete count is a property of the keys inside every day,
+  // which would cost one listing per day of history — hundreds of calls inside a request
+  // an administrator is waiting on. The screen says which window they cover, and the
+  // scheduled operation reads the true depth from the bucket regardless of what was shown.
+  int32 recent_file_count = 5;
+  // recent_client_types are the Kiro clients seen in that same window, sorted.
+  repeated string recent_client_types = 6;
+  // recent_window_days is the window those two cover. Presenting them without it states
+  // a sample as a total.
+  int32 recent_window_days = 7;
+}
+
+// ValidateKiroBucketRequest carries the bucket path for the resolve (no-save) step.
+message ValidateKiroBucketRequest {
+  // org_id is the tenant the configuration would belong to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // bucket_path is the single value the administrator types, as s3://bucket/prefix. One
+  // field rather than four: the region is discovered and the account is read out of the
+  // vendor's own key path, so asking for either invites a typo the server can avoid.
+  string bucket_path = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+}
+
+// ValidateKiroBucketResponse returns the grant to paste and what was found, persisting
+// nothing.
+message ValidateKiroBucketResponse {
+  // read_policy is the bucket policy statement the administrator adds, built HERE and not
+  // in the browser: it names this deployment's own principal and the exact resource scope,
+  // both server-side facts that change with the deployment. A cached client bundle
+  // composing them could emit a grant naming a stale principal or a wider scope, which is
+  // a security-sensitive artifact to get wrong.
+  string read_policy = 1;
+  // region is where the bucket actually lives, read from the object store rather than
+  // asked for.
+  string region = 2;
+  // state says how far validation got; inventory is set only once the bucket could be
+  // listed.
+  KiroBucketAccessState state = 3;
+  // inventory is what the bucket holds; unset unless the bucket could be listed.
+  KiroBucketInventory inventory = 4;
+}
+
+// SubmitKiroBucketRequest persists a configuration the administrator has confirmed.
+//
+// It carries the path again rather than a token or a digest of what validation found.
+// Validation writes nothing and issues nothing, so there is no server-side record of it to
+// bind to: comparing a submitted path against a validated one would compare two
+// client-supplied strings to each other, and a direct caller could skip validation
+// altogether. Submit therefore re-runs the same checks and keeps only what it observed
+// itself. A digest would also break a legitimate case — the vendor publishes daily, so an
+// administrator who left the dialogue open across that boundary would be told the bucket
+// had changed and made to start again, correctly and uselessly.
+message SubmitKiroBucketRequest {
+  // org_id is the tenant the configuration belongs to.
+  string org_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // bucket_path is the same s3://bucket/prefix, and the only client-supplied value that
+  // reaches storage. Every other stored field is one this call derived for itself.
+  string bucket_path = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+}
+
+// SubmitKiroBucketResponse reports which of the two saveable states the configuration
+// landed in, so the dialogue can say whether the grant was proven or only assumed.
+message SubmitKiroBucketResponse {
+  // state is the verdict the saved configuration was reached under. Always CONFIRMED
+  // today: nothing weaker is saveable.
+  KiroBucketAccessState state = 1;
+}
+
+service IntegrationService {
+  rpc ConnectIntegration(ConnectIntegrationRequest) returns (ConnectIntegrationResponse);
+  rpc DisconnectIntegration(DisconnectIntegrationRequest) returns (google.protobuf.Empty);
+  rpc GetIntegrations(GetIntegrationsRequest) returns (GetIntegrationsResponse);
+  // ValidateInstallation resolves the installing account + tenant kind WITHOUT
+  // persisting credentials (the resolve step of pin-before-save). It consumes the
+  // CSRF state, proves OAuth user access, and returns a single-use save receipt. The caller pins the resolved owner before calling SaveInstallation.
+  rpc ValidateInstallation(ValidateInstallationRequest) returns (ValidateInstallationResponse);
+  // SaveInstallation persists the credential for an installation the caller has
+  // already validated (ValidateInstallation) and owner-verified
+  // (PinIndividualOwner). Nothing is persisted before the owner pin succeeds. For
+  // an INDIVIDUAL tenant it re-resolves the installation and rejects BEFORE
+  // persisting if the account differs from request.expected_account_id (a
+  // pre-persist torn-state guard).
+  rpc SaveInstallation(SaveInstallationRequest) returns (SaveInstallationResponse);
+  rpc ValidateAndSaveBitbucketConnection(ValidateAndSaveBitbucketConnectionRequest) returns (ValidateAndSaveBitbucketConnectionResponse);
+  rpc ValidateAndSaveSlackConnection(ValidateAndSaveSlackConnectionRequest) returns (ValidateAndSaveSlackConnectionResponse);
+  rpc HandleWebhook(HandleWebhookRequest) returns (google.protobuf.Empty);
+  rpc GetBitbucketWorkspaces(GetBitbucketWorkspacesRequest) returns (GetBitbucketWorkspacesResponse);
+  rpc SelectBitbucketWorkspace(SelectBitbucketWorkspaceRequest) returns (google.protobuf.Empty);
+  rpc ValidateAndSaveJiraConnection(ValidateAndSaveJiraConnectionRequest) returns (ValidateAndSaveJiraConnectionResponse);
+  rpc SelectJiraCloudSite(SelectJiraCloudSiteRequest) returns (google.protobuf.Empty);
+  rpc ValidateAndSaveGitLabConnection(ValidateAndSaveGitLabConnectionRequest) returns (ValidateAndSaveGitLabConnectionResponse);
+  rpc GetGitLabGroups(GetGitLabGroupsRequest) returns (GetGitLabGroupsResponse);
+  rpc SelectGitLabGroup(SelectGitLabGroupRequest) returns (google.protobuf.Empty);
+  // HandleGitLabWebhook ingests a GitLab webhook delivery. GitLab posts every
+  // org's events to one shared endpoint with no org identifier, so the handler
+  // scans all connector configs to match the X-Gitlab-Token secret before it
+  // knows the org — a cross-tenant read. Hence SYSTEM scope; ENFORCED would
+  // reject the org-less request. The handler emits only for the matched org.
+  rpc HandleGitLabWebhook(HandleGitLabWebhookRequest) returns (google.protobuf.Empty);
+  rpc ValidateAndSaveLinearConnection(ValidateAndSaveLinearConnectionRequest) returns (ValidateAndSaveLinearConnectionResponse);
+  rpc GetVCSSettings(GetVCSSettingsRequest) returns (GetVCSSettingsResponse);
+  rpc UpdateVCSSettings(UpdateVCSSettingsRequest) returns (google.protobuf.Empty);
+  rpc ListVCSRepos(ListVCSReposRequest) returns (ListVCSReposResponse);
+  // ValidateConnectorToken validates a pasted credential and returns the vendor
+  // account it authenticates as WITHOUT persisting anything (the resolve step of
+  // pin-before-save). The caller pins the resolved owner before calling
+  // SubmitConnectorToken.
+  rpc ValidateConnectorToken(ValidateConnectorTokenRequest) returns (ValidateConnectorTokenResponse);
+  // SubmitConnectorToken persists a pasted credential the caller has already
+  // validated (ValidateConnectorToken) and owner-verified (PinIndividualOwner).
+  // Nothing is persisted before the owner pin succeeds.
+  rpc SubmitConnectorToken(SubmitConnectorTokenRequest) returns (SubmitConnectorTokenResponse);
+  // ValidateCursorTeamKey resolves a pasted Cursor team key to the members it
+  // authenticates for, persisting nothing. A key that lists members but cannot read
+  // billed usage events is refused: every scheduled run depends on that privilege.
+  rpc ValidateCursorTeamKey(ValidateCursorTeamKeyRequest) returns (ValidateCursorTeamKeyResponse);
+  // SubmitCursorTeamKey persists a Cursor team key the administrator has confirmed
+  // and enables the connector. It re-runs both probes before saving.
+  rpc SubmitCursorTeamKey(SubmitCursorTeamKeyRequest) returns (SubmitCursorTeamKeyResponse);
+  // ValidateAnthropicAnalyticsKey resolves a pasted Anthropic Analytics API key to the
+  // organisation and members it authenticates for, persisting nothing. It probes once
+  // per scope: a key that reads the roster but not the analytics endpoints, or the
+  // reverse, is refused — every scheduled run depends on both, and a key's scopes
+  // cannot be widened after creation.
+  rpc ValidateAnthropicAnalyticsKey(ValidateAnthropicAnalyticsKeyRequest) returns (ValidateAnthropicAnalyticsKeyResponse);
+  // SubmitAnthropicAnalyticsKey persists a key the administrator has confirmed and
+  // enables the connector. It re-runs both probes before saving.
+  rpc SubmitAnthropicAnalyticsKey(SubmitAnthropicAnalyticsKeyRequest) returns (SubmitAnthropicAnalyticsKeyResponse);
+  // ValidateCodexAnalyticsKey resolves a pasted Codex Analytics admin key against the
+  // workspace the administrator named, persisting nothing. One scope covers the endpoint,
+  // so one probe proves exactly the privilege every scheduled run depends on. A rejected
+  // key, a key without the scope, and an unreachable workspace are each refused
+  // distinguishably, because an administrator cannot act on a single opaque failure.
+  rpc ValidateCodexAnalyticsKey(ValidateCodexAnalyticsKeyRequest) returns (ValidateCodexAnalyticsKeyResponse);
+  // SubmitCodexAnalyticsKey persists a Codex Analytics admin key and workspace the
+  // administrator has confirmed and enables the connector. It re-probes before saving.
+  // The workspace this request names replaces whatever is stored, so a reconnect
+  // re-points the connector rather than keeping the old workspace.
+  rpc SubmitCodexAnalyticsKey(SubmitCodexAnalyticsKeyRequest) returns (SubmitCodexAnalyticsKeyResponse);
+  // ConfirmConnectorRepos confirms the repos to track and enables the connector.
+  rpc ConfirmConnectorRepos(ConfirmConnectorReposRequest) returns (google.protobuf.Empty);
+  // DisableConnectorConfigsForOrg disables every enabled connector config owned
+  // by request.org_id and returns the count. It is idempotent, so a caller can
+  // repeat it. SYSTEM scope: the caller runs cross-tenant and names the org in
+  // the request body, which ENFORCED would reject.
+  rpc DisableConnectorConfigsForOrg(DisableConnectorConfigsForOrgRequest) returns (DisableConnectorConfigsForOrgResponse);
+  // ValidateKiroBucket builds the read policy for a customer's reports bucket and reports
+  // what it could see there, persisting nothing. It fetches exactly one object when one
+  // exists: a grant that lists but cannot read lets every listing pass and every fetch
+  // fail, so a listing-only check would save a connector that cannot collect and the
+  // failure would surface on the first scheduled run with nobody watching.
+  rpc ValidateKiroBucket(ValidateKiroBucketRequest) returns (ValidateKiroBucketResponse);
+  // SubmitKiroBucket persists a bucket the administrator has confirmed and enables the
+  // connector. It re-runs the same walk and probe, and stores only what it observed.
+  rpc SubmitKiroBucket(SubmitKiroBucketRequest) returns (SubmitKiroBucketResponse);
+}

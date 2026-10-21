@@ -1,0 +1,4 @@
+ replayed_rows | all_seen_before_second_sync
+---------------+-----------------------------
+             8 | t
+(1 row)

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_org_members.schema.json",
+  "title": "gitlab fetch_org_members",
+  "description": "One member of the configured group, as the connector's GroupMemberRecord (encoding/json, snake_case). Empty optional fields are omitted.",
+  "type": "object",
+  "required": ["numeric_user_id", "login", "hint_source"],
+  "additionalProperties": false,
+  "properties": {
+    "numeric_user_id": {"type": "integer", "minimum": 1, "description": "GitLab user id."},
+    "login": {"type": "string", "description": "GitLab username."},
+    "email": {"type": "string", "description": "Member email, else the profile public_email or email. Omitted when none is visible."},
+    "name": {"type": "string"},
+    "avatar_url": {"type": "string"},
+    "hint_source": {"const": "group_members_api"},
+    "groups": {"type": "array", "items": {"type": "string"}, "description": "Subgroup names the member belongs to, or the root group name when the group has no subgroups."}
+  }
+}

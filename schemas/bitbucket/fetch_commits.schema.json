@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_commits.schema.json",
+  "title": "bitbucket fetch_commits",
+  "description": "One Bitbucket commit object from the commits listing, verbatim, plus three integers the connector adds from the commit diffstat: additions, deletions and files_changed. They are absent when diffstat enrichment is off or failed.",
+  "type": "object",
+  "required": ["hash"],
+  "additionalProperties": true,
+  "properties": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "date": {"type": "string", "format": "date-time"},
+    "message": {"type": "string"},
+    "author": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "raw": {"type": "string", "description": "\"Name <email>\" as git recorded it."},
+        "user": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "uuid": {"type": "string"},
+            "account_id": {"type": "string"},
+            "display_name": {"type": "string"},
+            "nickname": {"type": "string"}
+          }
+        }
+      }
+    },
+    "parents": {"type": "array", "items": {"type": "object", "properties": {"hash": {"type": "string"}}}},
+    "links": {"type": "object"},
+    "additions": {"type": "integer", "minimum": 0},
+    "deletions": {"type": "integer", "minimum": 0},
+    "files_changed": {"type": "integer", "minimum": 0, "description": "Added by the connector: distinct file paths in the diffstat. A rename counts once."}
+  }
+}

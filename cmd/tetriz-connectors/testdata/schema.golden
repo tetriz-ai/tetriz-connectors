@@ -1,0 +1,73 @@
+bitbucket
+  fetch_branches
+  fetch_branching_model
+  fetch_commits
+  fetch_config
+  fetch_file_content
+  fetch_pr_comments
+  fetch_prs
+  fetch_prs_data
+  fetch_repo_tree
+  fetch_repos
+  fetch_reviews
+  fetch_workspace_members
+  webhook_events
+claude-code
+  fetch_analytics_skills
+  fetch_analytics_user_cost
+  fetch_analytics_user_usage
+  fetch_analytics_users
+  fetch_organization_members
+codex
+  fetch_codex_usage
+cursor
+  fetch_usage_events
+github
+  fetch_branches
+  fetch_commits
+  fetch_config
+  fetch_copilot_usage
+  fetch_file_content
+  fetch_issues
+  fetch_issues_data
+  fetch_org_members
+  fetch_pr_comments
+  fetch_projects
+  fetch_prs
+  fetch_prs_data
+  fetch_repo_tree
+  fetch_repos
+  fetch_reviews
+  pr_sync_events
+  webhook_events
+gitlab
+  fetch_branches
+  fetch_commits
+  fetch_config
+  fetch_file_content
+  fetch_issues
+  fetch_org_members
+  fetch_pr_comments
+  fetch_projects
+  fetch_prs
+  fetch_prs_data
+  fetch_repo_tree
+  fetch_repos
+  fetch_reviews
+  webhook_events
+jira
+  fetch_comments
+  fetch_issues
+  fetch_issues_data
+  fetch_projects
+  fetch_sprints
+  fetch_worklogs
+kiro
+  fetch_user_activity_report
+linear
+  fetch_issues
+  fetch_labels
+  fetch_projects
+  fetch_sprints
+  fetch_teams
+  fetch_users

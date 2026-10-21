@@ -1,0 +1,80 @@
+bitbucket
+  fetch_repos                  7 */6 * * *
+  fetch_prs                    */15 * * * *
+  fetch_commits                8 * * * *
+  fetch_reviews                5-59/15 * * * *
+  fetch_pr_comments            10-59/15 * * * *
+  fetch_workspace_members      22 */6 * * *
+  webhook_events               -
+  fetch_pr_diffs               12-59/15 * * * *  (needs host: work_queue)
+  fetch_prs_data               3-59/15 * * * *
+  fetch_repo_tree              37 3,15 * * *
+  fetch_branches               52 */6 * * *
+  fetch_file_content           2 5 * * *  (needs host: work_queue; content gate)
+  fetch_config                 -
+  drain_defect_lineage         23,53 * * * *  (needs host: blame_sink)
+  drain_defect_scoring         26,56 * * * *  (needs host: blame_sink, defect_scorer)
+claude-code
+  fetch_analytics_users        25 11 * * *
+  fetch_analytics_skills       40 11 * * *
+  fetch_analytics_user_cost    10 11 * * *
+  fetch_analytics_user_usage   55 11 * * *
+  fetch_organization_members   0 12 * * 1
+codex
+  fetch_codex_usage            20 4 * * *
+cursor
+  fetch_usage_events           17 3 * * *
+github
+  fetch_prs                    */15 * * * *
+  fetch_commits                0 * * * *
+  fetch_issues                 0 * * * *
+  fetch_reviews                */15 * * * *
+  fetch_pr_comments            */15 * * * *
+  fetch_copilot_usage          0 */6 * * *
+  webhook_events               -
+  fetch_org_members            0 */6 * * *
+  fetch_pr_diffs               */15 * * * *  (needs host: work_queue)
+  drain_defect_lineage         */30 * * * *  (needs host: blame_sink, lineage_walker)
+  drain_defect_scoring         */30 * * * *  (needs host: blame_sink, defect_scorer)
+  fetch_prs_data               */15 * * * *
+  fetch_issues_data            */15 * * * *
+  fetch_projects               -
+  fetch_repos                  0 * * * *
+  fetch_repo_tree              0 */6 * * *
+  fetch_branches               0 */6 * * *
+  fetch_file_content           0 3 * * *  (needs host: work_queue; content gate)
+  fetch_config                 -
+gitlab
+  fetch_projects               0 */6 * * *
+  fetch_prs                    */30 * * * *
+  fetch_commits                */30 * * * *
+  fetch_issues                 */30 * * * *
+  fetch_reviews                */30 * * * *
+  fetch_pr_comments            */15 * * * *
+  webhook_events               -
+  fetch_org_members            0 */6 * * *
+  fetch_mr_diffs               */15 * * * *  (needs host: work_queue)
+  drain_defect_lineage         */30 * * * *  (needs host: blame_sink, lineage_walker)
+  drain_defect_scoring         */30 * * * *  (needs host: blame_sink, defect_scorer)
+  fetch_prs_data               */15 * * * *
+  fetch_repos                  0 */6 * * *
+  fetch_repo_tree              0 */6 * * *
+  fetch_branches               0 */6 * * *
+  fetch_file_content           0 3 * * *  (needs host: work_queue; content gate)
+  fetch_config                 -
+jira
+  fetch_projects               0 */6 * * *
+  fetch_issues                 */15 * * * *
+  fetch_issues_data            */15 * * * *
+  fetch_comments               -
+  fetch_worklogs               */15 * * * *
+  fetch_sprints                0 */6 * * *
+kiro
+  fetch_user_activity_report   40 3 * * *
+linear
+  fetch_teams                  0 */6 * * *
+  fetch_users                  0 */6 * * *
+  fetch_projects               0 */6 * * *
+  fetch_labels                 0 */6 * * *
+  fetch_sprints                0 */6 * * *
+  fetch_issues                 */30 * * * *

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_branching_model.schema.json",
+  "title": "bitbucket fetch_branching_model",
+  "description": "A repository's branching model from GET .../branching-model, verbatim. fetch_branches emits it as a companion record, once per repository that has a model.",
+  "type": "object",
+  "additionalProperties": true,
+  "$defs": {
+    "arm": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {"type": "string", "description": "Declared branch name."},
+        "use_mainbranch": {"type": "boolean"},
+        "branch": {"type": ["object", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "type": {"type": "string"},
+    "development": {"$ref": "#/$defs/arm"},
+    "production": {"$ref": "#/$defs/arm"},
+    "branch_types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "kind": {"type": "string", "description": "feature, bugfix, release or hotfix."},
+          "prefix": {"type": "string"},
+          "enabled": {"type": "boolean"}
+        }
+      }
+    },
+    "links": {"type": "object"}
+  }
+}

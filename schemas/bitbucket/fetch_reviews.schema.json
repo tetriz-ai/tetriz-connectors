@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/bitbucket/fetch_reviews.schema.json",
+  "title": "bitbucket fetch_reviews",
+  "description": "One review, built by the connector. APPROVED and COMMENTED come from the pull request activity feed. CHANGES_REQUESTED comes from a participant's current state, dated at the pull request's creation.",
+  "type": "object",
+  "required": ["user", "state", "pr_id", "created_on"],
+  "additionalProperties": false,
+  "properties": {
+    "user": {
+      "type": "object",
+      "required": ["account_id", "display_name", "nickname"],
+      "additionalProperties": false,
+      "description": "The reviewer. Each key is an empty string when Bitbucket sent no user.",
+      "properties": {
+        "account_id": {"type": "string"},
+        "display_name": {"type": "string"},
+        "nickname": {"type": "string"}
+      }
+    },
+    "state": {"enum": ["APPROVED", "COMMENTED", "CHANGES_REQUESTED"]},
+    "pr_id": {"type": "string", "pattern": "^[0-9]+$", "description": "Pull request id, as a decimal string."},
+    "created_on": {"type": "string", "format": "date-time", "description": "RFC 3339 in UTC, to the second."}
+  }
+}

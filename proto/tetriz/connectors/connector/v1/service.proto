@@ -1,0 +1,317 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.connector.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/connector/v1;connectorpb";
+
+import "google/protobuf/timestamp.proto";
+
+// ConnectorService gives other services read access to connector
+// configuration, sync status and the grants the connectors hold.
+service ConnectorService {
+  // Returns enabled connector configs for a given connector type.
+  // Pre-filters to enabled configs only.
+  rpc ListEnabledConfigs(ListEnabledConfigsRequest) returns (ListEnabledConfigsResponse);
+
+  // Returns the org IDs that have the given connector enabled.
+  rpc ListEnabledOrganizations(ListEnabledOrganizationsRequest) returns (ListEnabledOrganizationsResponse);
+
+  // Returns the currently enabled VCS connector for an org (at most one due to
+  // the single-VCS guard). Returns an empty connector_id if none is enabled.
+  rpc GetActiveVCSConnector(GetActiveVCSConnectorRequest) returns (GetActiveVCSConnectorResponse);
+
+  // Returns the discovered repository names for a VCS connector.
+  // Reads from the connector config's discovered_repos settings field.
+  rpc GetDiscoveredRepos(GetDiscoveredReposRequest) returns (GetDiscoveredReposResponse);
+
+  // Returns the per-repo effective base branch for a VCS connector,
+  // resolved from {discovered_repos, tracked_branch, repo_branch_overrides}.
+  // Used by analytics consumers that need to apply the same branch filter
+  // a consumer applies at write time, without re-implementing
+  // resolveEffectiveBranch.
+  rpc GetVCSTrackedBranches(GetVCSTrackedBranchesRequest) returns (GetVCSTrackedBranchesResponse);
+
+  // GetConnectorSyncStatus returns the org's true per-connector vendor-sync
+  // freshness — grounded in actual vendor-fetch outcomes, not merely that a
+  // consumer run completed (a completed run is not evidence a vendor fetch
+  // found anything). A connector absent from the response has no sync run
+  // history yet.
+  rpc GetConnectorSyncStatus(GetConnectorSyncStatusRequest) returns (GetConnectorSyncStatusResponse);
+
+  // GetSecret lends the bot token of an org's grant to a caller that sends on
+  // its behalf; the caller must not persist it, and the token is never logged.
+  // The connector_id identifies the grant directly. The server's
+  // SecretAuthorizer decides which callers may borrow which connector's token;
+  // a server built without one denies every call with PERMISSION_DENIED. A
+  // grant paused as auth_revoked is refused with FAILED_PRECONDITION.
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+
+  // GetConnectionStatus reports whether an org has a live grant for a
+  // connector. No secret is returned.
+  rpc GetConnectionStatus(GetConnectionStatusRequest) returns (GetConnectionStatusResponse);
+
+  // ReportGrantInvalid disables a grant and records the reason when a caller's
+  // send fails authentication, proving the token dead. The connector owns the
+  // grant's state and the reconnect. A grant that does not exist is NOT_FOUND.
+  rpc ReportGrantInvalid(ReportGrantInvalidRequest) returns (ReportGrantInvalidResponse);
+
+  // ListCommsSlackChannels lists the workspace's public Slack channels using the
+  // bot token of the org's slack_comms connector, for a host's channel picker. The
+  // connector owns the token (resolves it via the same grant GetSecret reads) and
+  // makes the conversations.list vendor call; no secret crosses the wire. Private
+  // channels appear only when the bot is a member.
+  rpc ListCommsSlackChannels(ListCommsSlackChannelsRequest) returns (ListCommsSlackChannelsResponse);
+
+  // PurgeOrgGrants deletes an org's grant for a connector, for a caller that
+  // removes an organization's data. It is system-scoped: the org comes from the
+  // request, not from the caller's tenant context. A grant that does not exist
+  // is NOT_FOUND.
+  rpc PurgeOrgGrants(PurgeOrgGrantsRequest) returns (PurgeOrgGrantsResponse);
+}
+
+// PurgeOrgGrantsRequest selects the grant to delete by org + connector.
+message PurgeOrgGrantsRequest {
+  // organization_id is the org whose grant to delete.
+  string organization_id = 1;
+  // connector_id is the connector whose grant to delete (e.g. "slack_comms").
+  string connector_id = 2;
+}
+
+// PurgeOrgGrantsResponse reports how many grant rows were deleted.
+message PurgeOrgGrantsResponse {
+  // deleted_count is the number of connector_configs rows deleted.
+  int64 deleted_count = 1;
+}
+
+// GetSecretRequest selects a grant by org + connector.
+message GetSecretRequest {
+  // organization_id is the org whose grant to read.
+  string organization_id = 1;
+  // connector_id is the connector whose grant to read (e.g. "slack_comms").
+  string connector_id = 2;
+}
+
+// GetSecretResponse carries the resolved bot token (never logged by the caller).
+message GetSecretResponse {
+  // token is the decrypted bot token for the resolved grant.
+  string token = 1;
+  // connector_id is the grant that resolved (e.g. "slack_comms").
+  string connector_id = 2;
+}
+
+// GetConnectionStatusRequest asks whether a connector's grant is live for an org.
+message GetConnectionStatusRequest {
+  // organization_id is the org to check.
+  string organization_id = 1;
+  // connector_id is the connector to check (e.g. "slack_comms").
+  string connector_id = 2;
+}
+
+// GetConnectionStatusResponse reports liveness.
+message GetConnectionStatusResponse {
+  // connected reports enablement ALONE, which is rarely the question a caller
+  // means to ask: a grant whose credential has since died is still enabled, so
+  // connected=true does not mean the connector can sync. Prefer usable. This
+  // field stays for callers that genuinely want "a grant row exists and is
+  // switched on", and to keep existing readers unchanged.
+  bool connected = 1;
+  // needs_reconnect is true when an enabled grant can no longer authenticate,
+  // so scheduled syncs are gated until someone reconnects it. Always false
+  // when connected is false — an absent grant is not a broken one.
+  bool needs_reconnect = 2;
+  // usable is the question most callers mean: can this connector sync right
+  // now? True only when a grant exists, is enabled, and can still
+  // authenticate. Read this unless you specifically need to tell an absent
+  // grant apart from a broken one, which the two fields above do.
+  bool usable = 3;
+}
+
+// ReportGrantInvalidRequest names the grant that failed auth at send time.
+message ReportGrantInvalidRequest {
+  // organization_id is the org owning the grant.
+  string organization_id = 1;
+  // connector_id is the grant to disable (e.g. "slack_comms").
+  string connector_id = 2;
+  // reason is the auth-failure classification (e.g. "invalid_auth"); never the token.
+  string reason = 3;
+}
+
+// ReportGrantInvalidResponse is the empty ack.
+message ReportGrantInvalidResponse {}
+
+// ListCommsSlackChannelsRequest selects the org whose slack_comms grant Slack channels
+// to list.
+message ListCommsSlackChannelsRequest {
+  // organization_id is the org whose notifications Slack workspace to list.
+  string organization_id = 1;
+  // force_refresh treats the cache as stale regardless of its age, triggering
+  // the same async background refresh as a cache-miss/stale read (see the
+  // response's syncing field). The response still returns immediately with
+  // whatever is currently cached.
+  bool force_refresh = 2;
+}
+
+// SlackChannel is one Slack channel the slack_comms bot can see (a picker option).
+message SlackChannel {
+  // id is the Slack channel id (e.g. "C0123456789") — what a destination stores.
+  string id = 1;
+  // name is the channel name without the leading '#'.
+  string name = 2;
+  // is_private is whether the channel is private; true entries appear only when
+  // the slack_comms bot has been invited to that channel.
+  bool is_private = 3;
+}
+
+// ListCommsSlackChannelsResponse carries the workspace's channels, name-ascending.
+message ListCommsSlackChannelsResponse {
+  // channels is the listable set for the slack_comms grant; empty when none exist,
+  // the bot can see none, or nothing has been cached yet (see syncing).
+  repeated SlackChannel channels = 1;
+  // refreshed_at is when this channel list was last fetched from Slack (the
+  // cache's stamp, not necessarily "now" — see the cache-aside read path in
+  // ListCommsSlackChannels). Unset when nothing has been cached yet.
+  google.protobuf.Timestamp refreshed_at = 2;
+  // syncing is true while a background refresh is populating or updating this
+  // list — channels may be empty (nothing cached yet) or stale (serving the
+  // last-known-good list while a newer one is fetched in the background). This
+  // RPC never blocks on the live fetch itself; the caller should poll until
+  // syncing reads false.
+  bool syncing = 3;
+}
+
+message ListEnabledConfigsRequest {
+  string connector_id = 1;
+}
+
+message EnabledConnectorConfig {
+  string organization_id = 1;
+  string connector_id = 2;
+}
+
+message ListEnabledConfigsResponse {
+  repeated EnabledConnectorConfig configs = 1;
+}
+
+message ListEnabledOrganizationsRequest {
+  string connector_id = 1;
+}
+
+message ListEnabledOrganizationsResponse {
+  repeated string organization_ids = 1;
+}
+
+message GetActiveVCSConnectorRequest {
+  string org_id = 1;
+}
+
+message GetActiveVCSConnectorResponse {
+  // Empty string when no VCS connector is enabled for the org.
+  string connector_id = 1;
+}
+
+message GetDiscoveredReposRequest {
+  string org_id = 1;
+  string connector_id = 2; // "github", "gitlab", or "bitbucket"
+}
+
+message GetDiscoveredReposResponse {
+  repeated string repo_names = 1; // full_name of each discovered repo
+}
+
+// GetVCSTrackedBranchesRequest selects the org + VCS connector whose
+// per-repo branch policy should be returned.
+message GetVCSTrackedBranchesRequest {
+  // Org whose connector config is being queried.
+  string org_id = 1;
+  // VCS connector identifier ("github", "gitlab", or "bitbucket").
+  string connector_id = 2;
+}
+
+// GetVCSTrackedBranchesResponse carries the resolved per-repo branch
+// policy for analytics consumers.
+message GetVCSTrackedBranchesResponse {
+  // Per-repo effective base branch, post-resolution (per-repo override
+  // wins over tracked_branch default; consumer parity).
+  // Empty list means no branch policy configured — consumers treat as
+  // "no filter". Covers only discovered repos; the org-level fields below
+  // let a consumer complete the policy for repos absent from this list.
+  repeated RepoBranchPolicy repo_branches = 1;
+  // org_tracked_branch is the org-level tracked_branch default ("" if unset).
+  // A read consumer applies it to a repo absent from repo_branches so its
+  // fallback matches the consumer's gate, which scopes every repo to this
+  // default — the per-repo list is keyed on discovered repos and may be
+  // incomplete.
+  string org_tracked_branch = 2;
+  // org_all_branches is the org-wide track-all-branches opt-in. A consumer
+  // that honours it counts every branch for a repo absent from repo_branches.
+  bool org_all_branches = 3;
+}
+
+// RepoBranchPolicy is one (repo, effective base branch) pair after the
+// handler applies override-vs-default resolution. A consumer matches
+// (repo, base_branch) against its own pull-request records.
+message RepoBranchPolicy {
+  // Full repo identifier ("owner/repo" for GitHub/GitLab, "workspace/repo"
+  // for Bitbucket).
+  string repo_full_name = 1;
+  // Effective base branch for this repo (per-repo override if set, else
+  // the connector's tracked_branch default). Ignored when all_branches is
+  // true.
+  string base_branch = 2;
+  // all_branches, when true, means this repo counts PRs on ALL branches:
+  // consumers apply a repo-only predicate (no base_branch tuple-match) for
+  // it.
+  bool all_branches = 3;
+}
+
+// GetConnectorSyncStatusRequest selects the org whose per-connector sync
+// freshness should be returned.
+message GetConnectorSyncStatusRequest {
+  // org_id is the org whose per-connector sync status to return.
+  string org_id = 1;
+}
+
+// ConnectorSyncState is the connector's overall data-freshness state for the
+// org, derived only from its data-bearing operations — a metadata/discovery
+// operation's success (e.g. a VCS connector's repo listing) is not evidence
+// that the connector's activity records are fresh.
+enum ConnectorSyncState {
+  // CONNECTOR_SYNC_STATE_UNSPECIFIED should never appear on the wire.
+  CONNECTOR_SYNC_STATE_UNSPECIFIED = 0;
+  // CONNECTOR_SYNC_STATE_STILL_SYNCING: no data operation has ever completed
+  // — either one is currently running (first sync in progress) or none has
+  // run yet.
+  CONNECTOR_SYNC_STATE_STILL_SYNCING = 1;
+  // CONNECTOR_SYNC_STATE_SYNCED: at least one data operation has completed,
+  // and none is currently failing.
+  CONNECTOR_SYNC_STATE_SYNCED = 2;
+  // CONNECTOR_SYNC_STATE_FAILED: a data operation's most recent attempt is
+  // Failed — a genuine problem (e.g. a revoked token, a rate limit), distinct
+  // from a first sync still in progress.
+  CONNECTOR_SYNC_STATE_FAILED = 3;
+}
+
+// ConnectorSyncStatus is one connector's true vendor-sync freshness,
+// aggregated across its data-bearing operations for the org.
+message ConnectorSyncStatus {
+  // connector_id identifies the connector (e.g. "github", "jira").
+  string connector_id = 1;
+  // last_successful_sync_at is unset when the connector has never had a data
+  // operation complete — it can still be set while sync_state is
+  // CONNECTOR_SYNC_STATE_FAILED, naming the last time that data synced
+  // before the current failure.
+  google.protobuf.Timestamp last_successful_sync_at = 2;
+  // sync_state is the connector's current data-sync health; see
+  // ConnectorSyncState.
+  ConnectorSyncState sync_state = 3;
+}
+
+// GetConnectorSyncStatusResponse carries one entry per connector that has
+// recorded at least one sync run for the org (any status, any operation).
+message GetConnectorSyncStatusResponse {
+  // statuses holds one entry per connector with sync run history for the org.
+  repeated ConnectorSyncStatus statuses = 1;
+}

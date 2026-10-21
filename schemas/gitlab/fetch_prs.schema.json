@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_prs.schema.json",
+  "title": "gitlab fetch_prs",
+  "description": "One merge request lifecycle record (ADR-0003; metadata event_type opened, merged, closed or snapshot). Every kind carries the GitLab REST merge request object unchanged (snake_case). webhook_events emits the Merge Request Hook's records under its own operationId.",
+  "$ref": "#/$defs/restMergeRequest",
+  "$defs": {
+    "user": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "username": {"type": "string"},
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "bot": {"type": "boolean"}
+      }
+    },
+    "restMergeRequest": {
+      "title": "REST merge request (GET /projects/:id/merge_requests)",
+      "type": "object",
+      "required": ["id", "iid", "project_id", "state", "created_at", "updated_at", "source_branch", "target_branch", "author"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer", "description": "Instance-wide merge request id."},
+        "iid": {"type": "integer", "description": "Project-scoped merge request number, shown as !iid."},
+        "project_id": {"type": "integer"},
+        "source_project_id": {"type": "integer"},
+        "target_project_id": {"type": "integer"},
+        "title": {"type": "string"},
+        "description": {"type": ["string", "null"]},
+        "state": {"enum": ["opened", "closed", "locked", "merged"]},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "merged_at": {"type": ["string", "null"], "format": "date-time"},
+        "closed_at": {"type": ["string", "null"], "format": "date-time"},
+        "source_branch": {"type": "string"},
+        "target_branch": {"type": "string"},
+        "additions": {"type": "integer"},
+        "deletions": {"type": "integer"},
+        "changes_count": {"type": ["string", "null"], "description": "A string, such as \"12\" or \"1000+\"."},
+        "user_notes_count": {"type": "integer"},
+        "author": {"$ref": "#/$defs/user"},
+        "reviewers": {"type": "array", "items": {"$ref": "#/$defs/user"}},
+        "assignees": {"type": "array", "items": {"$ref": "#/$defs/user"}}
+      }
+    }
+  }
+}

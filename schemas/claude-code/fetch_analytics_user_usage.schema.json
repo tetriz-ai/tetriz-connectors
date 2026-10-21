@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/claude-code/fetch_analytics_user_usage.schema.json",
+  "title": "claude-code fetch_analytics_user_usage",
+  "description": "A JSON array of every token-usage row for one user, one daily bucket and one product, each row stored verbatim from GET /v1/organizations/analytics/user_usage_report. The connector checks actor.user_id and starting_at; the other properties are typed from the vendor's documentation.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "description": "One usage row. The vendor fans a bucket out by model.",
+    "type": "object",
+    "required": ["actor", "starting_at"],
+    "properties": {
+      "actor": {
+        "description": "Who used the tokens.",
+        "type": "object",
+        "required": ["user_id"],
+        "properties": {
+          "user_id": {"description": "Anthropic user id. Part of the ExternalID.", "type": "string", "minLength": 1},
+          "type": {"description": "Actor type, such as user_actor (vendor-documented).", "type": ["string", "null"]},
+          "email": {"description": "The user's email address (vendor-documented).", "type": ["string", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "starting_at": {"description": "Bucket start, RFC 3339. Its UTC date is part of the ExternalID, and midnight UTC of that date is the DataDate.", "type": "string", "format": "date-time"},
+      "ending_at": {"description": "Bucket end, exclusive, RFC 3339 (vendor-documented).", "type": ["string", "null"]},
+      "product": {"description": "Product the usage belongs to, such as claude_code. Part of the ExternalID; absent, null or empty groups under unknown.", "type": ["string", "null"]},
+      "model": {"description": "Model id or display name. Not part of the ExternalID (vendor-documented).", "type": ["string", "null"]},
+      "total_tokens": {"description": "All tokens in the row (vendor-documented).", "type": ["integer", "null"]},
+      "uncached_input_tokens": {"description": "Input tokens not served from cache (vendor-documented).", "type": ["integer", "null"]},
+      "output_tokens": {"description": "Output tokens (vendor-documented).", "type": ["integer", "null"]},
+      "cache_read_input_tokens": {"description": "Input tokens read from cache (vendor-documented).", "type": ["integer", "null"]},
+      "cache_creation": {"description": "Cache-write tokens by TTL, such as ephemeral_5m_input_tokens (vendor-documented, kept verbatim).", "type": ["object", "null"], "additionalProperties": true},
+      "server_tool_use": {"description": "Server tool calls, such as web_search_requests (vendor-documented, kept verbatim).", "type": ["object", "null"], "additionalProperties": true},
+      "requests": {"description": "API requests in the row (vendor-documented).", "type": ["integer", "null"]}
+    },
+    "additionalProperties": true
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/fetch_projects.schema.json",
+  "title": "gitlab fetch_projects",
+  "description": "One project of the configured group: the GitLab REST project object (GET /groups/:id/projects) passed through unchanged. Keys are snake_case. The connector parses only the fields listed here; GitLab sends many more.",
+  "type": "object",
+  "required": ["id", "path_with_namespace", "created_at"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {"type": "integer", "description": "Project id. The platform_repo_id of fetch_repos."},
+    "name": {"type": "string"},
+    "path": {"type": "string", "description": "Short repository name."},
+    "path_with_namespace": {"type": "string", "minLength": 1, "description": "group/project. The ExternalID suffix."},
+    "description": {"type": ["string", "null"]},
+    "default_branch": {"type": ["string", "null"], "description": "Null for an empty repository."},
+    "visibility": {"enum": ["public", "internal", "private"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "last_activity_at": {"type": ["string", "null"], "format": "date-time"},
+    "archived": {"type": "boolean"},
+    "star_count": {"type": "integer"},
+    "forks_count": {"type": "integer"},
+    "open_issues_count": {"type": "integer"},
+    "issues_enabled": {"type": "boolean"},
+    "wiki_enabled": {"type": "boolean"},
+    "web_url": {"type": "string"},
+    "ssh_url_to_repo": {"type": "string"},
+    "http_url_to_repo": {"type": "string"},
+    "topics": {"type": "array", "items": {"type": "string"}},
+    "import_status": {"type": ["string", "null"]},
+    "empty_repo": {"type": "boolean"},
+    "forked_from_project": {"type": ["object", "null"], "properties": {"id": {"type": "integer"}}},
+    "namespace": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {"type": "integer"},
+        "path": {"type": "string"},
+        "kind": {"type": "string", "description": "group or user."}
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+<!-- Copyright 2026 Workloom Solutions Private Limited -->
+<!-- SPDX-License-Identifier: MIT -->
+
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="200" viewBox="0 0 880 200" role="img" aria-labelledby="t d">
+  <title id="t">tetriz-connectors</title>
+  <desc id="d">Syncs pull requests, issues and AI-assistant usage from GitHub, GitLab, Jira, Linear and five more tools. Run it with Docker Compose over Postgres and Redis to get JSON lines, or embed it in Go and send records to SQS or your own sink.</desc>
+  <rect width="880" height="200" rx="16" fill="#f6f8fa"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="40" y="66" font-size="40" font-weight="700" fill="#1f2328">tetriz-connectors</text>
+    <text x="40" y="92" font-size="15" fill="#57606a">Syncs pull requests, issues and AI-assistant usage</text>
+    <text x="40" y="112" font-size="15" fill="#57606a">from GitHub, GitLab, Jira, Linear and five more</text>
+    <text x="40" y="132" font-size="15" fill="#57606a">tools. Run it with Docker Compose over Postgres and</text>
+    <text x="40" y="152" font-size="15" fill="#57606a">Redis to get JSON lines, or embed it in Go and send</text>
+    <text x="40" y="172" font-size="15" fill="#57606a">records to SQS or your own sink.</text>
+  </g>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">
+    <rect x="600" y="36" width="240" height="128" rx="10" fill="#ffffff"/>
+    <text x="616" y="62" fill="#6e7781">run 1</text>
+    <text x="664" y="62" fill="#1f2328">page 1, 2, 3</text>
+    <text x="616" y="84" fill="#6e7781">cursor</text>
+    <text x="672" y="84" fill="#0969da">saved at page 3</text>
+    <line x1="616" y1="98" x2="824" y2="98" stroke="#6e7781" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="616" y="122" fill="#6e7781">run 2</text>
+    <text x="664" y="122" fill="#1f2328">resumes at page 4</text>
+    <text x="616" y="146" fill="#6e7781">429</text>
+    <text x="664" y="146" fill="#0969da">waits, then retries</text>
+  </g>
+</svg>

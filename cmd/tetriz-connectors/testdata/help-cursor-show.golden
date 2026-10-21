@@ -1,0 +1,11 @@
+usage: tetriz-connectors cursor show [flags]
+
+Print the stored cursor of one operation as JSON.
+
+Flags:
+  -connector string
+    	connector id, for example github (required)
+  -op string
+    	operation id, for example fetch_prs (required)
+  -org string
+    	organization id, a UUID (required)

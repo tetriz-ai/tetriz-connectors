@@ -1,0 +1,139 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.gateway.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/internal/gen/gateway/v1;connectorv1";
+
+// --- Search Issues (REST v3 — POST /rest/api/3/search/jql) ---
+
+message JiraSearchIssuesRequest {
+  string cloud_id = 1;
+  string jql = 2;
+  int32 max_results = 3;
+  // Comma-separated expand options (e.g., "changelog,renderedFields").
+  string expand = 4;
+  // Comma-separated field list or "*all".
+  string fields = 5;
+  // Opaque token for cursor-based pagination. Empty for the first page.
+  string next_page_token = 6;
+}
+
+message JiraSearchIssuesResponse {
+  // Raw JSON of each issue object from the Jira API.
+  repeated bytes issues = 1;
+  int32 max_results = 2;
+  // Opaque token for the next page. Empty means last page.
+  string next_page_token = 3;
+}
+
+// --- List Projects (REST v3 — GET /rest/api/3/project/search) ---
+
+message JiraListProjectsRequest {
+  string cloud_id = 1;
+  int32 start_at = 2;
+  int32 max_results = 3;
+}
+
+message JiraListProjectsResponse {
+  // Raw JSON of each project object.
+  repeated bytes projects = 1;
+  int32 total = 2;
+  bool is_last = 3;
+}
+
+// --- List Issue Comments (REST v3 — GET /rest/api/3/issue/{issueIdOrKey}/comment) ---
+
+message JiraListIssueCommentsRequest {
+  string cloud_id = 1;
+  string issue_id_or_key = 2;
+  int32 start_at = 3;
+  int32 max_results = 4;
+  // Order by field (e.g., "created", "-created").
+  string order_by = 5;
+}
+
+message JiraListIssueCommentsResponse {
+  // Raw JSON of each comment object from the Jira API.
+  repeated bytes comments = 1;
+  int32 total = 2;
+  int32 start_at = 3;
+  int32 max_results = 4;
+}
+
+// --- List Issue Worklogs (REST v3 — GET /rest/api/3/issue/{issueIdOrKey}/worklog) ---
+
+message JiraListIssueWorklogsRequest {
+  string cloud_id = 1;
+  string issue_id_or_key = 2;
+  int32 start_at = 3;
+  int32 max_results = 4;
+}
+
+message JiraListIssueWorklogsResponse {
+  // Raw JSON of each worklog object from the Jira API.
+  repeated bytes worklogs = 1;
+  int32 total = 2;
+  int32 start_at = 3;
+  int32 max_results = 4;
+}
+
+// --- List Boards (Agile API — GET /rest/agile/1.0/board) ---
+
+message JiraListBoardsRequest {
+  // Atlassian cloud site identifier (UUID-like string). Required.
+  string cloud_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Zero-based offset for pagination. Jira rejects negative values.
+  int32 start_at = 2 [(buf.validate.field).int32.gte = 0];
+  // Page size. Jira caps this at 50 server-side.
+  int32 max_results = 3 [(buf.validate.field).int32 = {gte: 0, lte: 50}];
+  // Optional board-type filter. Values: "scrum", "kanban", "simple". Empty = all types.
+  string type = 4 [(buf.validate.field).string = {in: ["", "scrum", "kanban", "simple"]}];
+}
+
+message JiraListBoardsResponse {
+  // Raw JSON of each board object from the Jira Agile API.
+  repeated bytes boards = 1;
+  // Echo of the requested offset.
+  int32 start_at = 2;
+  // Echo of the requested (or Jira-capped) page size.
+  int32 max_results = 3;
+  // Jira's end-of-results marker for this pagination run.
+  bool is_last = 4;
+  // Total number of boards across all pages.
+  int32 total = 5;
+}
+
+// --- List Sprints for a Board (Agile API — GET /rest/agile/1.0/board/{boardId}/sprint) ---
+
+message JiraListSprintsRequest {
+  // Atlassian cloud site identifier. Required.
+  string cloud_id = 1 [(buf.validate.field).string.min_len = 1];
+  // Jira board ID. Required, must be positive.
+  int64 board_id = 2 [(buf.validate.field).int64.gt = 0];
+  // Zero-based offset for pagination.
+  int32 start_at = 3 [(buf.validate.field).int32.gte = 0];
+  // Page size. Jira caps this at 50 server-side.
+  int32 max_results = 4 [(buf.validate.field).int32 = {gte: 0, lte: 50}];
+  // Optional comma-separated sprint-state filter. Values: "future", "active", "closed".
+  // Empty = all states.
+  string state = 5 [(buf.validate.field).string.pattern = "^$|^(future|active|closed)(,(future|active|closed))*$"];
+}
+
+message JiraListSprintsResponse {
+  // Raw JSON of each sprint object.
+  repeated bytes sprints = 1;
+  // Echo of the requested offset.
+  int32 start_at = 2;
+  // Echo of the requested (or Jira-capped) page size.
+  int32 max_results = 3;
+  // Jira's end-of-results marker for this pagination run.
+  bool is_last = 4;
+  // Total number of sprints across all pages for this board.
+  int32 total = 5;
+}
+

@@ -1,0 +1,96 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+{{- if .Values.simulator.enabled }}
+# The vendor simulator, for demos. It stores its data in Postgres and serves
+# fake GitHub, GitLab, Bitbucket and Jira APIs on simulator.port.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tetriz.simulatorName" . }}
+  labels:
+    {{- include "tetriz.labels" . | nindent 4 }}
+    app.kubernetes.io/component: simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "tetriz.selectorLabels" (dict "ctx" . "component" "simulator") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tetriz.commonLabels" . | nindent 8 }}
+        {{- include "tetriz.selectorLabels" (dict "ctx" . "component" "simulator") | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tetriz.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: simulator
+          image: {{ include "tetriz.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - simulator
+            {{- if .Values.simulator.seed }}
+            - --seed
+            {{- end }}
+            - --addr
+            - {{ printf ":%d" (int .Values.simulator.port) | quote }}
+          env:
+            - name: TETRIZ_SIMULATOR_DSN
+              {{- if .Values.simulator.dsn }}
+              value: {{ .Values.simulator.dsn | quote }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tetriz.secretName" . }}
+                  key: TETRIZ_POSTGRES_DSN
+              {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.simulator.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /_health
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /_health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.simulator.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tetriz.simulatorName" . }}
+  labels:
+    {{- include "tetriz.labels" . | nindent 4 }}
+    app.kubernetes.io/component: simulator
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "tetriz.selectorLabels" (dict "ctx" . "component" "simulator") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.simulator.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/gitlab/webhook_events.schema.json",
+  "title": "gitlab webhook_events",
+  "description": "One record per item a GitLab webhook delivery carries. webhook_events emits every record under its own operationId, never under a polling operation's, so a hook body never overwrites the richer polled record that shares its ExternalID. Metadata record_kind names the shape: commit (one per Push Hook commit), push (a Push or Tag Push Hook with no commits: a tag push or a ref deletion, the raw body), merge_request (lifecycle records #opened, #snapshot, #merged, #closed: the raw Merge Request Hook body), issue (lifecycle records #snapshot, #closed: the Issue Hook reshaped) and note (a non-system Note Hook, reduced).",
+  "oneOf": [{"$ref": "#/$defs/commit"}, {"$ref": "#/$defs/push"}, {"$ref": "#/$defs/mergeRequest"}, {"$ref": "#/$defs/issue"}, {"$ref": "#/$defs/note"}],
+  "$defs": {
+    "commit": {
+      "title": "Push Hook commit (record_kind commit)",
+      "type": "object",
+      "required": ["id", "timestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "description": "Full commit SHA."},
+        "timestamp": {"type": "string", "format": "date-time", "description": "Go time.Time, RFC 3339 with nanoseconds."}
+      }
+    },
+    "push": {
+      "title": "Push or Tag Push Hook with no commits, raw (record_kind push)",
+      "type": "object",
+      "required": ["object_kind"],
+      "additionalProperties": true,
+      "properties": {
+        "object_kind": {"enum": ["push", "tag_push"]},
+        "ref": {"type": "string", "description": "Full ref, such as refs/tags/v1.0."},
+        "before": {"type": "string"},
+        "after": {"type": "string"},
+        "checkout_sha": {"type": ["string", "null"]},
+        "project": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {"path_with_namespace": {"type": "string"}}
+        },
+        "commits": {"type": ["array", "null"], "maxItems": 0}
+      }
+    },
+    "mergeRequest": {
+      "title": "Merge Request Hook body, raw (record_kind merge_request)",
+      "type": "object",
+      "required": ["object_attributes"],
+      "not": {"required": ["iid"]},
+      "additionalProperties": true,
+      "properties": {
+        "object_kind": {"const": "merge_request"},
+        "object_attributes": {
+          "type": "object",
+          "required": ["iid", "project_id", "created_at"],
+          "additionalProperties": true,
+          "properties": {
+            "iid": {"type": "integer"},
+            "project_id": {"type": "integer"},
+            "state": {"type": "string"},
+            "created_at": {"type": "string"},
+            "updated_at": {"type": "string"},
+            "merged_at": {"type": ["string", "null"]},
+            "closed_at": {"type": ["string", "null"]}
+          }
+        }
+      }
+    },
+    "issue": {
+      "title": "Issue Hook reshaped to a subset of the REST issue (record_kind issue)",
+      "type": "object",
+      "required": ["iid", "title", "state", "issue_type", "created_at", "labels", "assignees", "references"],
+      "additionalProperties": false,
+      "properties": {
+        "iid": {"type": "integer"},
+        "title": {"type": "string"},
+        "state": {"type": "string"},
+        "issue_type": {"type": "string"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "closed_at": {"type": "string", "format": "date-time"},
+        "labels": {"type": "array", "items": {"type": "string"}},
+        "assignees": {
+          "type": "array",
+          "items": {"type": "object", "required": ["id", "username"], "additionalProperties": false, "properties": {"id": {"type": "integer"}, "username": {"const": ""}}}
+        },
+        "author": {"type": "object", "required": ["id", "username"], "additionalProperties": false, "properties": {"id": {"type": "integer"}, "username": {"const": ""}}},
+        "references": {"type": "object", "required": ["full"], "additionalProperties": false, "properties": {"full": {"type": "string"}}},
+        "due_date": {"type": "string", "description": "Date only, such as 2026-04-30."}
+      }
+    },
+    "note": {
+      "title": "Note Hook reduced (record_kind note)",
+      "type": "object",
+      "required": ["id", "author", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "integer"},
+        "author": {
+          "type": "object",
+          "required": ["id", "username"],
+          "additionalProperties": false,
+          "properties": {"id": {"type": "integer"}, "username": {"type": "string"}}
+        },
+        "created_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

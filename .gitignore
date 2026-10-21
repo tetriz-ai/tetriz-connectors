@@ -1,0 +1,24 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+# Build output
+/dist/
+/bin/
+*.test
+*.out
+coverage.*
+
+# Local runs
+.env
+/data/
+*.jsonl
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local release-helper tests
+__pycache__/
+*.pyc

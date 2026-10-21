@@ -1,0 +1,175 @@
+// Copyright 2026 Workloom Solutions Private Limited
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package tetriz.connectors.workqueue.v1;
+
+option go_package = "github.com/tetriz-ai/tetriz-connectors/gen/workqueue/v1;workqueuev1";
+
+import "google/protobuf/timestamp.proto";
+import "tetriz/connectors/common/v1/common.proto";
+
+// Messages of the host-owned work lists that some VCS operations drain. The
+// host decides what needs fetching (which merged pull requests still lack a
+// diff, which repository files changed); the connector fetches, stages the
+// result in the blob store and reports back. The SDK's WorkQueue and
+// TrackedRefsResolver interfaces take and return these messages.
+
+// ListPRsPendingDiffFetchRequest asks for pull requests whose diff has not
+// been fetched yet.
+message ListPRsPendingDiffFetchRequest {
+  string organization_id = 1;
+  // connector_id is the VCS connector id ("github", "gitlab" or "bitbucket").
+  string connector_id = 2;
+  // limit caps the number of candidates returned.
+  int32 limit = 3;
+}
+
+// ListPRsPendingDiffFetchResponse is the batch to fetch, oldest first.
+message ListPRsPendingDiffFetchResponse {
+  repeated PRDiffFetchCandidate prs = 1;
+}
+
+// PRDiffFetchCandidate is one pull request whose diff to fetch.
+message PRDiffFetchCandidate {
+  // pull_request_id is the host's id, passed back in UpdatePRDiffStatus.
+  string pull_request_id = 1;
+  // platform_repo_id is the vendor's stable repository id; blob keys use it
+  // so a stored diff survives a repository rename.
+  string platform_repo_id = 2;
+  // repo_full_name is "owner/repo", for vendor API URLs.
+  string repo_full_name = 3;
+  int32 pr_number = 4;
+}
+
+// UpdatePRDiffStatusRequest reports the outcome of one diff fetch.
+message UpdatePRDiffStatusRequest {
+  string pull_request_id = 1;
+  // diff_s3_key is the blob key the diff was written to, or a terminal
+  // sentinel ("NOT_AVAILABLE", "TOO_LARGE"). Both remove the row from the work
+  // list.
+  string diff_s3_key = 2;
+  google.protobuf.Timestamp fetched_at = 3;
+  string organization_id = 4;
+}
+
+message UpdatePRDiffStatusResponse {}
+
+// ListPendingFileFetchesRequest asks for repository artifacts whose committed
+// content changed since the last fetch.
+message ListPendingFileFetchesRequest {
+  string organization_id = 1;
+  string connector_id = 2;
+  // limit caps whole artifacts; one artifact is never split across runs.
+  int32 limit = 3;
+}
+
+// ListPendingFileFetchesResponse is the artifact work list. Empty means the
+// organization has converged.
+message ListPendingFileFetchesResponse {
+  repeated FileContentRecord records = 1;
+}
+
+// FileContentRecord is one repository artifact (a group of AI-tool
+// configuration files under one directory). On the work-list read only its
+// identity, the files to fetch and the removed paths are set; the connector
+// fills each FetchedFile's staging fields and emits the record onward.
+message FileContentRecord {
+  // repository_id is the host's repository id (identity).
+  string repository_id = 1;
+  // ide_type is the detected tool (identity).
+  tetriz.connectors.common.v1.IdeType ide_type = 2;
+  // source_path is the artifact's primary file path (identity); its
+  // directory is the grouping root that relative paths are relative to.
+  string source_path = 3;
+  // artifact_type is set on a live record; unset on a tombstone.
+  tetriz.connectors.common.v1.HarnessArtifactType artifact_type = 4;
+  // name is the display name; empty on a tombstone.
+  string name = 5;
+  // branch is the branch the content was fetched from; empty on a tombstone.
+  string branch = 6;
+  // ref is the pinned commit the files were fetched at; empty on a tombstone.
+  string ref = 7;
+  // generation is an opaque monotonic freshness token for this record.
+  int64 generation = 8;
+  // platform_repo_id is the vendor's stable repository id the connector
+  // fetches by; empty on a tombstone.
+  string platform_repo_id = 12;
+  // repo_full_name is the "owner/name" form of the same repository.
+  string repo_full_name = 13;
+  // is_tombstone marks a whole-artifact deletion: no files, no removed paths.
+  bool is_tombstone = 9;
+
+  // FetchedFile is one changed or new file.
+  message FetchedFile {
+    // relative_path is relative to the artifact's grouping directory.
+    string relative_path = 1;
+    // content_hash is the content-addressed id of the body.
+    string content_hash = 2;
+    // s3_key is the record-unique staging key of the body in the blob store.
+    string s3_key = 3;
+    // blob_sha is the git blob SHA, the change-detection baseline.
+    string blob_sha = 4;
+    // is_primary marks the artifact's anchor file.
+    bool is_primary = 5;
+    // truncated is true when the body exceeded the size cap.
+    bool truncated = 6;
+    // original_bytes is the untruncated size when truncated; 0 otherwise.
+    int64 original_bytes = 7;
+  }
+  // files are the changed or new files fetched this run.
+  repeated FetchedFile files = 10;
+  // removed_paths are files removed from a surviving artifact.
+  repeated string removed_paths = 11;
+}
+
+// ResolveTrackedRefsRequest names whose tracked refs to resolve.
+message ResolveTrackedRefsRequest {
+  string organization_id = 1;
+  string connector_id = 2;
+}
+
+// ResolveTrackedRefsResponse carries the resolved refs and the history floor.
+message ResolveTrackedRefsResponse {
+  repeated RepoTrackedRefs repos = 1;
+  // window_floor is the earliest date the host keeps; first-sync walks stop
+  // there. Unset means no floor.
+  google.protobuf.Timestamp window_floor = 2;
+}
+
+// RepoTrackedRefs is one repository's resolved tracked-ref set.
+message RepoTrackedRefs {
+  string platform_repo_id = 1;
+  string repo_full_name = 2;
+  // refs are the concrete ref names. Empty with all_branches false means the
+  // repository resolved to no countable refs: skip it.
+  repeated string refs = 3;
+  // all_branches means every ref counts and refs is empty.
+  bool all_branches = 4;
+  // branch_tips maps a ref name to its tip SHA from the last branch snapshot.
+  map<string, string> branch_tips = 5;
+}
+
+// ReprocessConnectorPRCountsRequest asks the host to re-derive pull request
+// counts after a branch-scope setting changed.
+message ReprocessConnectorPRCountsRequest {
+  string organization_id = 1;
+  string connector_id = 2;
+}
+
+message ReprocessConnectorPRCountsResponse {
+  int64 rows_reset = 1;
+}
+
+// ResetPRDiffAnalysisStatusRequest asks the host to re-analyze fetched diffs
+// after file-exclude patterns changed. An empty connector_id means every VCS
+// connector of the organization.
+message ResetPRDiffAnalysisStatusRequest {
+  string organization_id = 1;
+  string connector_id = 2;
+}
+
+message ResetPRDiffAnalysisStatusResponse {
+  int64 rows_reset = 1;
+}

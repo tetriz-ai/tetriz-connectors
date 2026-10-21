@@ -1,0 +1,19 @@
+# Copyright 2026 Workloom Solutions Private Limited
+# SPDX-License-Identifier: MIT
+
+apiVersion: v2
+name: tetriz-connectors
+description: The tetriz-connectors runner (scheduler and worker), with an optional vendor simulator for demos.
+type: application
+# The chart's own version. Bump it on any chart change.
+version: 0.1.0
+# The release the chart deploys by default. The image tag is "v" + appVersion.
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/tetriz-ai/tetriz-connectors
+sources:
+  - https://github.com/tetriz-ai/tetriz-connectors
+keywords:
+  - connectors
+  - etl
+  - scheduler

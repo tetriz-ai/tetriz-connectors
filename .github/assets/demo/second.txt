@@ -1,0 +1,19 @@
+{
+  "run_id": "91630768-b675-4966-897d-f2d24b0d165d",
+  "status": "completed",
+  "records_emitted": 8,
+  "cursor": {
+    "demo-gh-startup/mobile": {
+      "sf": "0001-01-01T00:00:00Z",
+      "ts": "2026-10-15T08:00:00Z"
+    },
+    "demo-gh-startup/web-app": {
+      "sf": "0001-01-01T00:00:00Z",
+      "ts": "2026-10-15T21:30:00Z"
+    },
+    "demo-gh-startup/api-gateway": {
+      "sf": "0001-01-01T00:00:00Z",
+      "ts": "2026-10-15T18:48:00Z"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+usage: tetriz-connectors sync [flags]
+
+Run one operation for one organization now and print the run as JSON. Exits 1 when the run fails.
+
+Flags:
+  -connector string
+    	connector id, for example github (required)
+  -op string
+    	operation id, for example fetch_prs (required)
+  -org string
+    	organization id, a UUID (required)
+  -tenant string
+    	tenant kind: organization or individual (default "organization")

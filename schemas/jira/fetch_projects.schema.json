@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/jira/fetch_projects.schema.json",
+  "title": "jira fetch_projects",
+  "description": "One project, as the Jira REST API v3 project search returns it, byte for byte. camelCase keys.",
+  "type": "object",
+  "required": ["id", "key"],
+  "additionalProperties": true,
+  "properties": {
+    "self": {"type": "string"},
+    "id": {"type": "string", "pattern": "^[0-9]+$", "description": "Numeric project id, as a string. It never changes; the record's ExternalID is project-<id>."},
+    "key": {"type": "string", "minLength": 1, "description": "Project key, such as ENG. An admin can change it, so it is not in the ExternalID."},
+    "name": {"type": "string"},
+    "projectTypeKey": {"type": "string", "description": "software, business or service_desk."},
+    "simplified": {"type": "boolean"},
+    "style": {"type": "string"},
+    "isPrivate": {"type": "boolean"},
+    "uuid": {"type": "string"},
+    "avatarUrls": {"type": "object", "additionalProperties": {"type": "string"}},
+    "projectCategory": {"type": "object", "additionalProperties": true}
+  }
+}

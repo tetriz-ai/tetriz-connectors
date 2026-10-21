@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tetriz-ai/tetriz-connectors/schemas/jira/fetch_sprints.schema.json",
+  "title": "jira fetch_sprints",
+  "description": "One sprint, as the Jira Agile API 1.0 board sprint list returns it, byte for byte. camelCase keys. id and originBoardId are numbers, unlike the string ids of the REST API.",
+  "type": "object",
+  "required": ["id"],
+  "additionalProperties": true,
+  "properties": {
+    "self": {"type": "string"},
+    "id": {"type": "integer"},
+    "state": {"enum": ["future", "active", "closed"]},
+    "name": {"type": "string"},
+    "goal": {"type": "string"},
+    "startDate": {"$ref": "../common/jira.json#/$defs/time"},
+    "endDate": {"$ref": "../common/jira.json#/$defs/time"},
+    "completeDate": {"$ref": "../common/jira.json#/$defs/time"},
+    "createdDate": {"$ref": "../common/jira.json#/$defs/time"},
+    "originBoardId": {"type": "integer"}
+  }
+}
