@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Security
+
+- The container image is built on Alpine 3.24.3, whose ca-certificates-bundle 20261020-r0 drops emSign ECC Root CA - G3, the root behind the compromised eMudhra intermediate CA keys.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

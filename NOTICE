@@ -83,8 +83,8 @@ gopkg.in/yaml.v3.
 - gorm.io/driver/postgres v1.6.3, MIT, https://pkg.go.dev/gorm.io/driver/postgres@v1.6.3, third_party/licenses/gorm.io/driver/postgres
 - gorm.io/gorm v1.31.2, MIT, https://pkg.go.dev/gorm.io/gorm@v1.31.2, third_party/licenses/gorm.io/gorm
 
-The container image is built on alpine 3.24.2,
-alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6.
+The container image is built on alpine 3.24.3,
+alpine:3.24@sha256:c6b073f8e9e58d881f6ffba6ebf3b9ebd60b9e7d6e8337018c0e68bb5c356873.
 Its packages keep their own licenses: alpine-baselayout, alpine-baselayout-data,
 apk-tools, busybox, busybox-binsh, libapk, scanelf and ssl_client (GPL-2.0-only);
 musl-utils (MIT AND BSD-2-Clause AND GPL-2.0-or-later); ca-certificates-bundle
