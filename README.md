@@ -7,6 +7,8 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Go 1.26+](https://img.shields.io/badge/go-1.26%2B-00ADD8.svg)
 
+<a href="https://www.producthunt.com/products/tetriz-engg-intelligence-connectors?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-tetriz-engg-intelligence-connectors" target="_blank" rel="noopener noreferrer"><img alt="Tetriz Engg Intelligence + Connectors - Connect coding sessions to PRs, issues, quality, and ROI | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1288748&amp;theme=light&amp;t=1792669657317"></a>
+
 Every vendor pages, rate-limits, expires tokens and fails in its own way, so getting pull requests, issues and assistant usage into your own database usually means one fragile script per tool that can stop, or re-read everything, after an outage. tetriz-connectors runs those syncs, resumes each one from its saved cursor, records why a run failed, and gives you the records as JSON lines, Postgres rows or SQS messages.
 
 <img alt="A real GitHub simulator sync writes records to Postgres, saves per-repository cursors and resumes in a second CLI process with eight boundary records replayed" src=".github/assets/demo.gif" width="1000">
